@@ -8,9 +8,14 @@ $User->check_module_permissions ("dhcp", User::ACCESS_R, true, false);
 
 # get subnets
 $leases4 = $DHCP->read_reservations ("IPv4");
+$leases6 = [];
 
-
-// this function returns single item as table item for subnets
+/**
+ * This function returns single item as table item for subnets
+ *
+ * @param $s
+ * @return array
+ */
 function print_leases ($s) {
     // get user class
     global $User;
@@ -19,17 +24,19 @@ function print_leases ($s) {
     // printed option to add defaults
     $printed_options = array();
 
+    $ipAddr = $User->transform_address ($s->{"ip-address"}, "dotted");
+
     $html[] = "<tr>";
 
     $html[] = " <td>".$s->{"subnet"}."</td>";
-    $html[] = " <td>".$User->transform_address ($s->{"ip-address"}, "dotted")."</td>";
+    $html[] = " <td>".$ipAddr."</td>";
     $html[] = " <td>".$User->reformat_mac_address ($s->{"hw-address"}, 1)."</td>";
     $html[] = " <td>".$s->hostname."</td>";
     $html[] = " <td>".$s->location."</td>";
 
     // options
     $html[] = " <td>";
-    if(sizeof($s->{"options"})>0) {
+    if(!is_null($s->{"options"})) {
         foreach ($s->{"options"} as $k=>$v) {
             $html[] = $k.": ".$v."<br>";
         }
@@ -48,7 +55,12 @@ function print_leases ($s) {
     else {
         $html[] = "/";
     }
-
+    $html[] =  "<td class='actions'>";
+    $html[] =  "<div class='btn-group'>";
+    $html[] =  "		<button class='btn btn-xs btn-default open_popup' data-ip_addr='".$ipAddr."' data-script='app/admin/dhcp/edit-reservations.php' data-action='edit'><i class='fa fa-pencil'></i></button>";
+    $html[] =  "		<button class='btn btn-xs btn-default open_popup' data-ip_addr='".$ipAddr."' data-script='app/admin/dhcp/edit-reservations.php' data-action='delete'><i class='fa fa-times'></i></button>";
+    $html[] =  "	</div>";
+    $html[] =  "</td>";
     $html[] = " </td>";
     $html[] = "</tr>";
     // return
@@ -83,6 +95,7 @@ function print_leases ($s) {
     <th><?php print _('Reserved in'); ?></th>
     <th><?php print _('Options'); ?></th>
     <th><?php print _('Classes'); ?></th>
+    <th></th>
 </tr>
 </thead>
 
@@ -90,19 +103,19 @@ function print_leases ($s) {
 <?php
 // v4
 $html[] = "<tr>";
-$html[] = "<td class='th' colspan='8'>"._("IPv4 leases")."</td>";
+$html[] = "<td class='th' colspan='10'>"._("IPv4 leases")."</td>";
 $html[] = "</tr>";
 
 // IPv4 not configured
 if ($leases4 === false) {
     $html[] = "<tr>";
-    $html[] = " <td colspan='8'>".$Result->show("info", _("IPv4 not configured on DHCP server"), false, false, true)."</td>";
+    $html[] = " <td colspan='10'>".$Result->show("info", _("IPv4 not configured on DHCP server"), false, false, true)."</td>";
     $html[] = "</tr>";
 }
 // no subnets found
 elseif(sizeof($leases4)==0) {
     $html[] = "<tr>";
-    $html[] = " <td colspan='8'>".$Result->show("info", _("No IPv4 leases"), false, false, true)."</td>";
+    $html[] = " <td colspan='9'>".$Result->show("info", _("No IPv4 leases"), false, false, true)."</td>";
     $html[] = "</tr>";
 }
 else {
@@ -114,19 +127,19 @@ else {
 
 // v6
 $html[] = "<tr>";
-$html[] = "<td class='th' colspan='8'>"._("IPv6 leases")."</td>";
+$html[] = "<td class='th' colspan='9'>"._("IPv6 leases")."</td>";
 $html[] = "</tr>";
 
-// IPv4 not configured
+// IPv6 not configured
 if ($leases6 === false) {
     $html[] = "<tr>";
-    $html[] = " <td colspan='8'>".$Result->show("info", _("IPv6 not configured on DHCP server"), false, false, true)."</td>";
+    $html[] = " <td colspan='9'>".$Result->show("info", _("IPv6 not configured on DHCP server"), false, false, true)."</td>";
     $html[] = "</tr>";
 }
 // no subnets found
 elseif(sizeof($leases6)==0) {
     $html[] = "<tr>";
-    $html[] = " <td colspan='8'>".$Result->show("info", _("No IPv6 leases"), false, false, true)."</td>";
+    $html[] = " <td colspan='9'>".$Result->show("info", _("No IPv6 leases"), false, false, true)."</td>";
     $html[] = "</tr>";
 }
 else {

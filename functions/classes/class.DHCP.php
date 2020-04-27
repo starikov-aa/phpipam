@@ -298,10 +298,33 @@ class DHCP extends Common_functions {
     }
 
 
+    /**
+     * Creates a reservation for the specified type of IP
+     *
+     * @param $ip
+     * @param $mac
+     */
+    public function add_reservation_to_config($ip, $mac){
+        $this->DHCP_server->add_reservation_to_config($ip, $mac);
+    }
 
+    /**
+     * Removes lease with the given type
+     *
+     * @param $ip
+     * @param string $type
+     */
+    public function delete_lease($ip, $type = 'IPv4') {
+        $this->DHCP_server->delete_lease($ip, $type);
+    }
 
-
-
+    /**
+     * @param $ip
+     * @param string $type
+     */
+    public function delete_reservation($ip, $type = 'IPv4') {
+        $this->DHCP_server->delete_reservation($ip, $type);
+    }
 
 
     /* @write methods --------------- */
