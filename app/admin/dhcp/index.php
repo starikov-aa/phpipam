@@ -3,7 +3,7 @@
 $User->check_user_session();
 
 // valid tabs
-$tabs = array("subnets", "leases", "reservations", "settings", "config");
+$tabs = array("subnets", "leases", "reservations", "status", "settings", "config");
 ?>
 <div class="DHCP">
 

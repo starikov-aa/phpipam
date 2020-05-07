@@ -92,7 +92,13 @@ class DHCP extends Common_functions {
         }
 
         // save settings
-        $this->dhcp_settings = (array) $dhcp_settings;
+        if (count($dhcp_settings)) {
+            $this->dhcp_settings = (array)$dhcp_settings;
+        }else{
+            $Database 	= new Database_PDO;
+            $User 		= new User ($Database);
+            $this->dhcp_settings = json_decode($User->settings->DHCP, true)[$server_type];
+        }
 
         // init class
         $this->init_dhcp_server_class ();

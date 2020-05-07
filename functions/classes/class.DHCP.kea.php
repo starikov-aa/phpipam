@@ -165,14 +165,15 @@ class DHCP_kea extends Common_functions
      */
     protected $Database_kea = false;
 
-    public $ServersAddresses = [
-        '10.0.0.10',
-        '10.0.0.11'
-    ];
-    public $ApiPort = 8080;
-    public $ApiAuth = true;
-    public $ApiUser = "";
-    public $ApiPass = "";
+
+    /**
+     * The address of the server from which data will be taken (liza, reservation).
+     * By default, this is a server with the "primary" role.
+     *
+     * @var string
+     */
+    private $ApiReadServer = "";
+
     /**
      * __construct function.
      *
@@ -192,6 +193,10 @@ class DHCP_kea extends Common_functions
         // set file
         if (isset($this->kea_settings['file'])) {
             $this->kea_config_file = $this->kea_settings['file'];
+        }
+        $rs = $this->get_server('primary');
+        if ($rs) {
+            $this->ApiReadServer = $rs[0]['addr'];
         }
 
         // parse config file on startup
@@ -646,8 +651,9 @@ class DHCP_kea extends Common_functions
      * @param string $type
      * @return string
      */
-    function get_service_name($name, $type = 'IPv4'){
-        if ($name == 'dhcp'){
+    function get_service_name($name, $type = 'IPv4')
+    {
+        if ($name == 'dhcp') {
             $service = $type == 'IPv4' ? 'Dhcp4' : 'Dhcp6';
         }
         return $service;
@@ -657,10 +663,11 @@ class DHCP_kea extends Common_functions
      * @param $command
      * @param string $service
      * @param string $arguments
+     * @param string $server
      * @return bool|mixed
      * @throws exception
      */
-    public function api_request($command, $service = '', $arguments = null)
+    public function api_request($command, $service = '', $arguments = null, $server = '')
     {
         $result = false;
         $cmd['command'] = $command;
@@ -676,15 +683,17 @@ class DHCP_kea extends Common_functions
         if (is_array($arguments)) {
             $cmd['arguments'] = $arguments;
         }
-        //print_r($cmd);
+
         $cmd = json_encode($cmd, JSON_UNESCAPED_SLASHES);
 
-        //echo $cmd;
+        if (empty($server)) {
+            $server = $this->ApiReadServer;
+        }
 
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'http://10.0.0.10:8080');
+        curl_setopt($ch, CURLOPT_URL, 'http://' . $server);
         curl_setopt($ch, CURLOPT_HEADER, 0);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
         curl_setopt($ch, CURLOPT_POST, true);
@@ -699,10 +708,10 @@ class DHCP_kea extends Common_functions
                 'status' => $raw[0]['result']
             ];
         } else {
-            throw new exception ("api_request: Error execute command: " . $cmd . "<pre>" . print_r($raw, true));
+            throw new exception ("api_request: Error execute command: " . $cmd . "<pre>" . print_r($raw . " / server: " . $server, true));
         }
 
-        //echo $cmd . "\n\n\n";
+        //print_r($this->kea_settings). "\n\n\n";
         //echo print_r($result);
 
         return $result;
@@ -720,7 +729,7 @@ class DHCP_kea extends Common_functions
                 $this->ipv4_used = true;
             }
             //if (isset($raw_v4['data']['Dhcp4'])) {
-                //$this->ipv6_used = true;
+            //$this->ipv6_used = true;
             //}
         }
     }
@@ -732,16 +741,29 @@ class DHCP_kea extends Common_functions
      * @param $arguments
      * @throws exception
      */
-    public function write_config($service, $arguments){
-        $cs = $this->api_request('config-set', $service, $arguments);
-        //print_r($cs);
-        if ($cs['status'] != 0) {
-            throw new exception ("Set new config fail" . $this->gen_error_msg($cs));
-        } else {
-            $cw = $this->api_request('config-write', $service);
-            if ($cw['status'] != 0) {
-                throw new exception ("Write new config to file fail" . $this->gen_error_msg($cw));
-                $this->write_config();
+    public function write_config($service, $arguments)
+    {
+        $servers = $this->get_server('all');
+        if ($servers) {
+            foreach ($servers as $s) {
+
+                foreach ($arguments['Dhcp4']['hooks-libraries'] as $key => $arg){
+                    if (isset($arg['parameters']['high-availability'])){
+                        $arguments['Dhcp4']['hooks-libraries'][$key]['parameters']['high-availability'][0]['this-server-name'] = $s['name'];
+                    }
+                }
+
+                $cs = $this->api_request('config-set', $service, $arguments, $s['addr']);
+
+                if ($cs['status'] != 0) {
+                    throw new exception ("Set new config fail" . $this->gen_error_msg($cs));
+                } else {
+                    $cw = $this->api_request('config-write', $service, $s['addr']);
+                    if ($cw['status'] != 0) {
+                        throw new exception ("Write new config to file fail" . $this->gen_error_msg($cw));
+                        $this->write_config();
+                    }
+                }
             }
         }
     }
@@ -787,11 +809,11 @@ class DHCP_kea extends Common_functions
         if (!$this->ipv4_used && $type == 'IPv4') return;
         if (!$this->ipv6_used && $type == 'IPv6') return;
 
-        $raw = $this->api_request('lease'.$ipv.'-get-all', $service);
+        $raw = $this->api_request('lease' . $ipv . '-get-all', $service);
 
-        if ($raw['status'] === 0){
+        if ($raw['status'] === 0) {
             $leases = $raw['data']['leases'];
-            foreach($leases as $item){
+            foreach ($leases as $item) {
                 $result[$item['ip-address']] = [
                     "address" => $item['ip-address'],
                     "hwaddr" => $item['hw-address'],
@@ -806,7 +828,7 @@ class DHCP_kea extends Common_functions
                 ];
             }
 
-            if ($type == 'IPv4'){
+            if ($type == 'IPv4') {
                 $this->leases4 = $result;
             } else {
                 $this->leases6 = $result;
@@ -838,7 +860,8 @@ class DHCP_kea extends Common_functions
      * @param string $type
      * @throws exception
      */
-    public function delete_reservation($ip, $type = 'IPv4'){
+    public function delete_reservation($ip, $type = 'IPv4')
+    {
         $ipv = $type == 'IPv4' ? '4' : '6';
         $service = $this->get_service_name('dhcp', $type);
         $subnetList = $this->config[$service]['subnet' . $ipv];
@@ -853,5 +876,22 @@ class DHCP_kea extends Common_functions
         }
 
         $this->write_config($service, $result);
+    }
+
+    public function get_server($role = 'all')
+    {
+        $servers = $this->kea_settings['servers'];
+        $result = false;
+        foreach ($servers as $srv) {
+            if ($srv['role'] == $role || $role == 'all') {
+                $result[] = [
+                    "addr" => $srv['addr'] . ":" . $srv['port'],
+                    "role" => $srv['role'],
+                    "name" => $srv['name']
+                ];
+            }
+        }
+
+        return $result;
     }
 }

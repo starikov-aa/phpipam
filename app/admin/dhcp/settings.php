@@ -14,29 +14,28 @@ $User->check_module_permissions ("dhcp", User::ACCESS_R, true, false);
 <div id="content">
     <form class="form-horizontal">
         <fieldset>
-            <!-- Text input-->
+            <!-- Textarea -->
             <div class="form-group">
-                <label class="col-md-4 control-label" for="Api server address">Api server address</label>
+                <label class="col-md-4 control-label" for="servers">Servers</label>
                 <div class="col-md-4">
-                    <input id="Api server address" name="Api server address" type="text" placeholder="placeholder" class="form-control input-md">
-                    <span class="help-block">Addresses of servers with a port through ":". Multiple servers are separated by commas. For example: 10.0.0.1:8080,10.0.0.2:8080</span>
+                    <textarea class="form-control" id="servers" name="servers">config in json format</textarea>
                 </div>
             </div>
 
             <!-- Multiple Checkboxes -->
             <div class="form-group">
-                <label class="col-md-4 control-label" for="services">Use services</label>
+                <label class="col-md-4 control-label" for="dhcpuse">DHCP server usage</label>
                 <div class="col-md-4">
                     <div class="checkbox">
-                        <label for="services-0">
-                            <input type="checkbox" name="services" id="services-0" value="dhcp4">
-                            Dhcp4
+                        <label for="dhcpuse-0">
+                            <input type="checkbox" name="dhcpuse" id="dhcpuse-0" value="v4">
+                            DHCPv4
                         </label>
                     </div>
                     <div class="checkbox">
-                        <label for="services-1">
-                            <input type="checkbox" name="services" id="services-1" value="dhcp6">
-                            Dhcp6
+                        <label for="dhcpuse-1">
+                            <input type="checkbox" name="dhcpuse" id="dhcpuse-1" value="v6">
+                            DHCPv6
                         </label>
                     </div>
                 </div>
@@ -46,7 +45,7 @@ $User->check_module_permissions ("dhcp", User::ACCESS_R, true, false);
             <div class="form-group">
                 <label class="col-md-4 control-label" for="save"></label>
                 <div class="col-md-4">
-                    <button id="save" name="save" class="btn btn-success">Save</button>
+                    <button id="save" name="save" class="btn btn-primary">Save</button>
                 </div>
             </div>
 
@@ -55,14 +54,4 @@ $User->check_module_permissions ("dhcp", User::ACCESS_R, true, false);
 </div>
 
 <?php
-foreach ($dhcp_db as $k=>$s) {
-    if(is_array($s)) {
-        print $k."<br>";
-        foreach ($s as $k2=>$s2) {
-        print "&nbsp;&nbsp; $k2: $s2<br>";
-        }
-    }
-    else {
-        print "$k: $s<br>";
-    }
-}
+
