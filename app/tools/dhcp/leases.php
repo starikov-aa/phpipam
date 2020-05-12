@@ -15,7 +15,7 @@ $leases6 = $DHCP->read_leases ("IPv6");
 
 
 // this function returns single item as table item for subnets
-function print_leases ($s) {
+function print_leases ($s, $AllIP) {
     // get user class
     global $User;
     // cast
@@ -33,6 +33,8 @@ function print_leases ($s) {
     $html[] = " <td>".$s->expire."</td>";
     $html[] = " <td>".$s->state."</td>";
     $html[] = " <td>".$s->hostname."</td>";
+    $html[] = " <td>".$AllIP[$s->address]['hostname']."</td>";
+    $html[] = " <td>".$AllIP[$s->address]['description']."</td>";
     $html[] =  "<td class='actions'>";
     $html[] =  "<div class='btn-group'>";
     $html[] =  "		<button class='btn btn-xs btn-default open_popup' data-action='edit' data-hwaddr='$s->hwaddr' data-ip_addr='$s->address' data-script='app/admin/dhcp/edit-lease.php'><i class='fa fa-pencil'></i></button>";
@@ -53,7 +55,7 @@ function print_leases ($s) {
 <!-- Manage -->
 <?php if ($User->is_admin(false)) { ?>
 <?php if ($_GET['page']=="administration") { ?>
-    <a class='btn btn-sm btn-default btn-default btn-success dhcp-leases' data-action='add' data-id=''><i class='fa fa-plus'></i> <?php print _('Add'); ?></a>
+    <a class='btn btn-sm btn-default btn-default btn-success dhcp-leases open_popup' data-action='add' data-script='app/admin/dhcp/edit-lease.php'><i class='fa fa-plus'></i> <?php print _('Add'); ?></a>
 <?php } else { ?>
     <a class='btn btn-sm btn-default btn-default btn-success'  href="<?php print create_link ("administration", "dhcp", "leases"); ?>"><i class='fa fa-pencil'></i> <?php print _('Manage'); ?></a>
 <?php } ?>
@@ -73,7 +75,9 @@ function print_leases ($s) {
     <th><?php print _('Lifetime'); ?></th>
     <th><?php print _('Expires'); ?></th>
     <th><?php print _('State'); ?></th>
-    <th><?php print _('Hostname'); ?></th>
+    <th><?php print _('Hostname (dhcp)'); ?></th>
+    <th><?php print _('Hostname (ipam)'); ?></th>
+    <th><?php print _('Decription'); ?></th>
     <th></th>
 </tr>
 </thead>
@@ -82,48 +86,48 @@ function print_leases ($s) {
 <?php
 // v4
 $html[] = "<tr>";
-$html[] = "<td class='th' colspan='9'>"._("IPv4 leases")."</td>";
+$html[] = "<td class='th' colspan='11'>"._("IPv4 leases")."</td>";
 $html[] = "</tr>";
 
 // IPv4 not configured
 if ($leases4 === false) {
     $html[] = "<tr>";
-    $html[] = " <td colspan='9'>".$Result->show("info", _("IPv4 not configured on DHCP server"), false, false, true)."</td>";
+    $html[] = " <td colspan='11'>".$Result->show("info", _("IPv4 not configured on DHCP server"), false, false, true)."</td>";
     $html[] = "</tr>";
 }
 // no subnets found
 elseif(sizeof($leases4)==0) {
     $html[] = "<tr>";
-    $html[] = " <td colspan='9'>".$Result->show("info", _("No IPv4 leases"), false, false, true)."</td>";
+    $html[] = " <td colspan='11'>".$Result->show("info", _("No IPv4 leases"), false, false, true)."</td>";
     $html[] = "</tr>";
 }
 else {
     foreach ($leases4 as $s) {
-    $html = array_merge($html, print_leases ($s));
+    $html = array_merge($html, print_leases ($s, $AllIP));
     }
 }
 
 
 // v6
 $html[] = "<tr>";
-$html[] = "<td class='th' colspan='9'>"._("IPv6 leases")."</td>";
+$html[] = "<td class='th' colspan='11'>"._("IPv6 leases")."</td>";
 $html[] = "</tr>";
 
 // IPv4 not configured
 if ($leases6 === false) {
     $html[] = "<tr>";
-    $html[] = " <td colspan='9'>".$Result->show("info", _("IPv6 not configured on DHCP server"), false, false, true)."</td>";
+    $html[] = " <td colspan='11'>".$Result->show("info", _("IPv6 not configured on DHCP server"), false, false, true)."</td>";
     $html[] = "</tr>";
 }
 // no subnets found
 elseif(sizeof($leases6)==0) {
     $html[] = "<tr>";
-    $html[] = " <td colspan='9'>".$Result->show("info", _("No IPv6 leases"), false, false, true)."</td>";
+    $html[] = " <td colspan='11'>".$Result->show("info", _("No IPv6 leases"), false, false, true)."</td>";
     $html[] = "</tr>";
 }
 else {
     foreach ($leases6 as $s) {
-    $html = array_merge($html, print_leases ($s));
+    $html = array_merge($html, print_leases ($s, $AllIP));
     }
 }
 

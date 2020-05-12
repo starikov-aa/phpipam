@@ -92,7 +92,7 @@ class DHCP extends Common_functions {
         }
 
         // save settings
-        if (count($dhcp_settings)) {
+        if (isset($dhcp_settings['type'])) {
             $this->dhcp_settings = (array)$dhcp_settings;
         }else{
             $Database 	= new Database_PDO;
@@ -332,7 +332,16 @@ class DHCP extends Common_functions {
         $this->DHCP_server->delete_reservation($ip, $type);
     }
 
+    /**
+     * @param string $role
+     * @return mixed
+     */
+    public function get_servers_status() {
+        return $this->DHCP_server->get_servers_status();
+    }
 
-    /* @write methods --------------- */
+    public function get_servers_config() {
+        return $this->DHCP_server->get_servers_config();
+    }
 
 }

@@ -1,0 +1,10 @@
+# Получить информацию о IP:
+$Addresses->fetch_address('ip_addr', $Subnets->transform_address('10.0.30.10', 'decimal'));
+
+# Информация по всем IP в подсети с указанным ID:
+$Subnets->fetch_subnet(null, 8);
+
+# Получить все адреса из всех подсетей (выводить только: ip, desc, hostname):
+foreach ($Subnets->fetch_all_subnets_search() as $sub) {
+    print_r($Addresses->fetch_subnet_addresses($sub->id,null, null, ['ip_addr', 'description', 'hostname']));
+}

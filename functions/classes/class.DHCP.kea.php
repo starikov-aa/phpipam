@@ -1,8 +1,5 @@
 <?php
 
-include "/var/www/html/app/admin/dhcp/tools.php";
-include "/var/www/html/app/admin/dhcp/kea_api_config.php";
-
 /**
  * DHCP_kea class to work with isc-dhcp server
  *
@@ -196,7 +193,7 @@ class DHCP_kea extends Common_functions
         }
         $rs = $this->get_server('primary');
         if ($rs) {
-            $this->ApiReadServer = $rs[0]['addr'];
+            $this->ApiReadServer = $rs[0]['api_addr'];
         }
 
         // parse config file on startup
@@ -747,18 +744,18 @@ class DHCP_kea extends Common_functions
         if ($servers) {
             foreach ($servers as $s) {
 
-                foreach ($arguments['Dhcp4']['hooks-libraries'] as $key => $arg){
-                    if (isset($arg['parameters']['high-availability'])){
+                foreach ($arguments['Dhcp4']['hooks-libraries'] as $key => $arg) {
+                    if (isset($arg['parameters']['high-availability'])) {
                         $arguments['Dhcp4']['hooks-libraries'][$key]['parameters']['high-availability'][0]['this-server-name'] = $s['name'];
                     }
                 }
 
-                $cs = $this->api_request('config-set', $service, $arguments, $s['addr']);
+                $cs = $this->api_request('config-set', $service, $arguments, $s['api_addr']);
 
                 if ($cs['status'] != 0) {
                     throw new exception ("Set new config fail" . $this->gen_error_msg($cs));
                 } else {
-                    $cw = $this->api_request('config-write', $service, $s['addr']);
+                    $cw = $this->api_request('config-write', $service, $s['api_addr']);
                     if ($cw['status'] != 0) {
                         throw new exception ("Write new config to file fail" . $this->gen_error_msg($cw));
                         $this->write_config();
@@ -781,7 +778,7 @@ class DHCP_kea extends Common_functions
         $service = $this->get_service_name('dhcp', $type);
 
         foreach ($this->config[$service]['subnet' . $ipv] as $subnet_num => $subnet) {
-            if (isIpInRange($ip, $subnet['subnet'])) {
+            if ($this->isIpInRange($ip, $subnet['subnet'])) {
                 $result[$service]['subnet' . $ipv][$subnet_num]['reservations'][] = [
                     'ip-address' => $ip,
                     'hw-address' => $mac,
@@ -868,7 +865,7 @@ class DHCP_kea extends Common_functions
         $result = $this->config;
 
         foreach ($subnetList as $subnet_num => $subnet) {
-            if (isIpInRange($ip, $subnet['subnet'])) {
+            if ($this->isIpInRange($ip, $subnet['subnet'])) {
                 echo 'found in: ' . $subnet['subnet'];
                 $key_to_delete = array_search($ip, array_column($subnet['reservations'], 'ip-address'));
                 array_splice($result[$service]['subnet' . $ipv][$subnet_num]['reservations'], $key_to_delete, 1);
@@ -885,13 +882,38 @@ class DHCP_kea extends Common_functions
         foreach ($servers as $srv) {
             if ($srv['role'] == $role || $role == 'all') {
                 $result[] = [
-                    "addr" => $srv['addr'] . ":" . $srv['port'],
+                    "addr" => $srv['addr'],
+                    "api_addr" => $srv['addr'] . ":" . $srv['port'],
                     "role" => $srv['role'],
                     "name" => $srv['name']
                 ];
             }
         }
 
+        return $result;
+    }
+
+    public function get_servers_status()
+    {
+        $result = [];
+        $servers = $this->get_server('all');
+        if ($servers) {
+            foreach ($servers as $s) {
+                $result[] = array_merge($this->api_request("ha-heartbeat", "dhcp4", "", $s['api_addr']), $s);
+            }
+        }
+        return print_r($result, true);
+    }
+
+    public function get_servers_config()
+    {
+        $result = [];
+        $servers = $this->get_server('all');
+        if ($servers) {
+            foreach ($servers as $s) {
+                $result[$s['name']] = $this->api_request('config-get', 'dhcp4', '', $s['api_addr'])['data'];
+            }
+        }
         return $result;
     }
 }
