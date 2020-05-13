@@ -29,7 +29,7 @@ if ($ipObj) {
 }
 
 $address['description'] = $_POST['description'];
-$address['state'] = 4;
+$address['state'] = '6';
 $address['ip_addr'] = $Subnets->transform_address($_POST['ip_addr'], 'decimal');
 $address['mac'] = $User->reformat_mac_address ($_POST['hwaddr'], 1);
 
@@ -37,7 +37,7 @@ if ($_POST['action'] == 'edit') {
     if (isset($_POST['static'])) {
         if (!isset($reservation[$_POST['ip_addr']]) && !$hwaddrs) {
             try {
-                $dhcp->add_reservation_to_config($_POST['ip_addr'], $_POST['hwaddr']);
+                $dhcp->write_reservation($_POST['ip_addr'], $_POST['hwaddr'], $_POST['subnet_id']);
             } catch (Throwable $e) {
                 $Result->show("danger", _($e->getMessage()), true);
             }

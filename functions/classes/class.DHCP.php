@@ -309,9 +309,12 @@ class DHCP extends Common_functions {
      *
      * @param $ip
      * @param $mac
+     * @param null $subnet_id
+     * @param string $backend
+     * @param string $type
      */
-    public function add_reservation_to_config($ip, $mac){
-        $this->DHCP_server->add_reservation_to_config($ip, $mac);
+    public function write_reservation($ip, $mac, $subnet_id = null, $backend = 'config', $type = 'IPv4'){
+        $this->DHCP_server->write_reservation($ip, $mac, $subnet_id, $backend, $type);
     }
 
     /**

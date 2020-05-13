@@ -30,6 +30,10 @@ $Admin->validate_action ($_POST['action'], true);
 //$leases = $dhcp->read_leases()[$_POST['ip_addr']];
 $reservation = $dhcp->read_reservations ("IPv4")[$_POST['ip_addr']];
 
+# get subnets
+
+$subnets4 = $dhcp->read_subnets ("IPv4");
+//$subnets6 = $dhcp->read_subnets ("IPv6");
 
 # ID must be numeric
 //if($_POST['action']="edit" && !empty($_POST['address']) && !empty($_POST['hwaddr'])) {
@@ -69,6 +73,19 @@ $address = (array) $Addresses->fetch_address('ip_addr', $ipToDec);
                 </td>
             </tr>
 
+            <!-- Subnet -->
+            <tr>
+                <td style="white-space: nowrap;"><?php print _('Subnet'); ?></td>
+                <td>
+                    <select name="subnet_id" class="form-control input-sm input-w-auto">
+                        <?php foreach ($subnets4 as $s){
+                            $on = ($reservation['dhcp4_subnet_id'] == $s['id']) ? 'selected' : '';
+                            print '<option value="'.$s['id'].'" '.$on.'>'.$s['subnet'].'</option>';
+                        }?>
+                    </select>
+                </td>
+            </tr>
+
             <!-- Hostname -->
             <tr>
                 <td style="white-space: nowrap;"><?php print _('Hostname'); ?></td>
@@ -81,6 +98,20 @@ $address = (array) $Addresses->fetch_address('ip_addr', $ipToDec);
             <tr>
                 <td><?php print _('Description'); ?></td>
                 <td><input type="text" id="description" name="description" value="<?php print($address['description']); ?>" class="form-control input-sm"></td>
+            </tr>
+            <!-- NextServer -->
+            <tr>
+                <td style="white-space: nowrap;"><?php print _('NextServer'); ?></td>
+                <td>
+                    <input type="text" id="hostname" name="nextserver" class="form-control input-sm" value="">
+                </td>
+            </tr>
+            <!-- BootFileName -->
+            <tr>
+                <td style="white-space: nowrap;"><?php print _('BootFileName'); ?></td>
+                <td>
+                    <input type="text" id="hostname" name="boot-file-name" class="form-control input-sm" value="">
+                </td>
             </tr>
         </table>
     </form>

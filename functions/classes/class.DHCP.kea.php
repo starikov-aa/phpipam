@@ -765,30 +765,48 @@ class DHCP_kea extends Common_functions
         }
     }
 
+    public function write_reservation($ip, $mac, $subnet_id = null, $backend = 'config', $type = 'IPv4')
+    {
+        if ($backend == 'config') {
+            $this->write_reservation_to_config($ip, $mac, $subnet_id, $type);
+        }
+    }
+
     /**
      * @param $ip IP
      * @param $mac MAC
+     * @param $subnet_id
      * @param string $type IPv4 or IPv6
      * @throws exception
      */
-    public function add_reservation_to_config($ip, $mac, $type = 'IPv4')
+    private function write_reservation_to_config($ip, $mac, $subnet_id, $type = 'IPv4')
     {
-        $result = $this->config;
         $ipv = $type == 'IPv4' ? '4' : '6';
         $service = $this->get_service_name('dhcp', $type);
-
-        foreach ($this->config[$service]['subnet' . $ipv] as $subnet_num => $subnet) {
-            if ($this->isIpInRange($ip, $subnet['subnet'])) {
-                $result[$service]['subnet' . $ipv][$subnet_num]['reservations'][] = [
-                    'ip-address' => $ip,
-                    'hw-address' => $mac,
-                ];
+        $result = $this->config;
+        // ищем номер подсети в массиве сетей
+        $subnet_id_found = array_search($subnet_id, array_column($result[$service]['subnet' . $ipv], 'id'));
+        if ($subnet_id_found !== false) {
+            $subnet = $result[$service]['subnet' . $ipv][$subnet_id_found];
+            // получаем список резервирований в подсети
+            $r_list = $subnet['reservations'];
+            // ищем IP среди зарезервированых
+            $r_num = array_search($ip, array_column($r_list, 'ip-address'));
+            if ($r_list[$r_num]['ip-address'] == $ip && $r_list[$r_num]['hw-address'] == $mac) {
+                // обновляем какие то доп. опции
+                $result[$service]['subnet' . $ipv][$subnet_id_found]['reservations'][$r_num]['hostname'] = '123';
+            } elseif ($r_num === false && !in_array($mac, array_column($r_list, 'hw-address'))){
+                if ($this->isIpInRange($ip, $subnet['subnet'])) {
+                    $result[$service]['subnet' . $ipv][$subnet_id_found]['reservations'][] = [
+                        'ip-address' => $ip,
+                        'hw-address' => $mac
+                    ];
+                } else{
+                    throw new exception ("Ip ".$ip." is not on subnet " . $subnet_id);
+                }
             }
+            $this->write_config($service, $result);
         }
-        //print_r($this->config);
-        //print_r($result[$service]['subnet' . $ipv]);
-        $this->write_config($service, $result);
-        //throw new exception ('<pre>');
     }
 
     /**
@@ -915,5 +933,10 @@ class DHCP_kea extends Common_functions
             }
         }
         return $result;
+    }
+
+    public function add_lease($ip, $hw_addr, $subnet_id)
+    {
+
     }
 }

@@ -55,6 +55,7 @@ $address = (array) $Addresses->fetch_address('ip_addr', $ipToDec);
                 <td>
                     <input type="text" id="ip_addr" name="ip_addr" class="form-control input-sm" value="<?php print @$leases['address']; ?>"  readonly>
                     <input type="hidden" name="action" value="<?php print $_POST['action']; ?>">
+                    <input type="hidden" name="subnet_id" value="<?php print $_POST['subnet_id']; ?>">
                     <input type="hidden" name="addressId" 	value="<?php print $address['id']; ?>">
                     <input type="hidden" name="csrf_cookie" value="<?php print $csrf; ?>">
                 </td>
