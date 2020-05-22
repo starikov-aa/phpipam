@@ -37,6 +37,7 @@ if ($_POST['action'] == 'edit') {
     if (isset($_POST['static'])) {
         if (!isset($reservation[$_POST['ip_addr']]) && !$hwaddrs) {
             try {
+                print_r($_POST);
                 $dhcp->write_reservation($_POST['ip_addr'], $_POST['hwaddr'], $_POST['subnet_id']);
             } catch (Throwable $e) {
                 $Result->show("danger", _($e->getMessage()), true);

@@ -99,18 +99,11 @@ $address = (array) $Addresses->fetch_address('ip_addr', $ipToDec);
                 <td><?php print _('Description'); ?></td>
                 <td><input type="text" id="description" name="description" value="<?php print($address['description']); ?>" class="form-control input-sm"></td>
             </tr>
-            <!-- NextServer -->
+            <!-- Additional settings -->
             <tr>
-                <td style="white-space: nowrap;"><?php print _('NextServer'); ?></td>
+                <td style="white-space: nowrap;"><?php print _('Additional settings'); ?></td>
                 <td>
-                    <input type="text" id="hostname" name="nextserver" class="form-control input-sm" value="">
-                </td>
-            </tr>
-            <!-- BootFileName -->
-            <tr>
-                <td style="white-space: nowrap;"><?php print _('BootFileName'); ?></td>
-                <td>
-                    <input type="text" id="hostname" name="boot-file-name" class="form-control input-sm" value="">
+                    <textarea type="textarea" rows="5" id="additional_settings" name="additional_settings" class="form-control input-sm"></textarea>
                 </td>
             </tr>
         </table>

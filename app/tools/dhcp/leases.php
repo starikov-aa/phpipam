@@ -37,7 +37,7 @@ function print_leases ($s, $AllIP) {
     $html[] = " <td>".$AllIP[$s->address]['description']."</td>";
     $html[] =  "<td class='actions'>";
     $html[] =  "<div class='btn-group'>";
-    $html[] =  "		<button class='btn btn-xs btn-default open_popup' data-action='edit' data-hwaddr='$s->hwaddr' data-ip_addr='$s->address' data-subnet_id='$s->id' data-script='app/admin/dhcp/edit-lease.php'><i class='fa fa-pencil'></i></button>";
+    $html[] =  "		<button class='btn btn-xs btn-default open_popup' data-action='edit' data-hwaddr='$s->hwaddr' data-ip_addr='$s->address' data-subnet_id='$s->subnet_id' data-script='app/admin/dhcp/edit-lease.php'><i class='fa fa-pencil'></i></button>";
     $html[] =  "		<button class='btn btn-xs btn-default open_popup' data-action='delete' data-hwaddr='$s->hwaddr' data-ip_addr='$s->address' data-script='app/admin/dhcp/edit-lease.php'><i class='fa fa-times'></i></button>";
     $html[] =  "	</div>";
     $html[] =  "	</td>";
