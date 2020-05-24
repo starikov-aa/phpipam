@@ -539,22 +539,18 @@ class DHCP_kea extends Common_functions
                                 "hw-address" => $r['hw-address'],
                                 "ip-address" => $r['ip-address'],
                                 "hostname" => $r['hostname'],
-                                "dhcp4_subnet_id" => $s_id,
-                                "subnet" => $s['subnet']
+                                "subnet-id" => $s_id,
+                                "next-server" => $r['next-server'],
+                                "boot-file-name" => $r['boot-file-name'],
+                                "subnet" => $r['subnet']
                             );
                             // options
-                            if (isset($r['options'])) {
-                                $this->reservations4[$r['ip-address']]['options'] = array();
-                                foreach ($r['options'] as $o) {
-                                    $this->reservations4[$r['ip-address']]['options'][$o['name']] = $o['data'];
-                                }
+                            if (isset($r['option-data'])) {
+                                $this->reservations4[$r['ip-address']]['options']['option-data'] = $r['option-data'];
                             }
                             // classes
                             if (isset($r['client-classes'])) {
-                                $this->reservations4[$r['ip-address']]['classes'] = array();
-                                foreach ($r['client-classes'] as $c) {
-                                    $this->reservations4[$r['ip-address']]['classes'][] = $c;
-                                }
+                                $this->reservations4[$r['ip-address']]['options']['client-classes'] = $r['client-classes'];
                             }
 
                             // reformat
@@ -765,10 +761,10 @@ class DHCP_kea extends Common_functions
         }
     }
 
-    public function write_reservation($ip, $mac, $subnet_id = null, $backend = 'config', $type = 'IPv4')
+    public function write_reservation($ip, $mac, $subnet_id = null, $additional_settings = [], $backend = 'config', $type = 'IPv4')
     {
         if ($backend == 'config') {
-            $this->write_reservation_to_config($ip, $mac, $subnet_id, $type);
+            $this->write_reservation_to_config($ip, $mac, $subnet_id, $additional_settings, $type);
         }
     }
 
@@ -779,7 +775,7 @@ class DHCP_kea extends Common_functions
      * @param string $type IPv4 or IPv6
      * @throws exception
      */
-    private function write_reservation_to_config($ip, $mac, $subnet_id, $type = 'IPv4')
+    private function write_reservation_to_config($ip, $mac, $subnet_id, $additional_settings = [], $type = 'IPv4')
     {
         $ipv = $type == 'IPv4' ? '4' : '6';
         $service = $this->get_service_name('dhcp', $type);
@@ -794,7 +790,9 @@ class DHCP_kea extends Common_functions
             $r_num = array_search($ip, array_column($r_list, 'ip-address'));
             if ($r_list[$r_num]['ip-address'] == $ip && $r_list[$r_num]['hw-address'] == $mac) {
                 // обновляем какие то доп. опции
-                $result[$service]['subnet' . $ipv][$subnet_id_found]['reservations'][$r_num]['hostname'] = '123';
+                $tmp = $result[$service]['subnet' . $ipv][$subnet_id_found]['reservations'][$r_num];
+                $result[$service]['subnet' . $ipv][$subnet_id_found]['reservations'][$r_num] = array_merge($tmp, $additional_settings);
+                //print_r($result[$service]['subnet' . $ipv][$subnet_id_found]['reservations'][$r_num]);
             } elseif ($r_num === false && !in_array($mac, array_column($r_list, 'hw-address'))){
                 if ($this->isIpInRange($ip, $subnet['subnet'])) {
                     $result[$service]['subnet' . $ipv][$subnet_id_found]['reservations'][] = [
@@ -806,6 +804,7 @@ class DHCP_kea extends Common_functions
                 }
             }
             $this->write_config($service, $result);
+            //throw new exception ("x");
         }
     }
 
@@ -830,8 +829,8 @@ class DHCP_kea extends Common_functions
             $leases = $raw['data']['leases'];
             foreach ($leases as $item) {
                 $result[$item['ip-address']] = [
-                    "address" => $item['ip-address'],
-                    "hwaddr" => $item['hw-address'],
+                    "ip-address" => $item['ip-address'],
+                    "hw-address" => $item['hw-address'],
                     "client_id" => $item['client-id'],
                     "valid_lifetime" => $item['valid-lft'],
                     "expire" => date("Y-m-d H:i:s", $item['cltt']),
@@ -933,6 +932,10 @@ class DHCP_kea extends Common_functions
             }
         }
         return $result;
+    }
+
+    public function get_subnets(){
+
     }
 
     public function add_lease($ip, $hw_addr, $subnet_id)

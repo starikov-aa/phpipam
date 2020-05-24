@@ -3,7 +3,7 @@
 $User->check_user_session();
 
 // tabs
-$tabs = array("subnets", "leases", "reservations");
+$tabs = array("subnets", "leases");
 
 ?>
 <div class="DHCP">
@@ -51,17 +51,6 @@ $tabs = array("subnets", "leases", "reservations");
 
         <div>
         <?php
-
-        // get information for all IP
-        if (in_array($_GET[subnetId], ['leases', 'reservations'])){
-            $AllIP = [];
-            foreach ($Subnets->fetch_all_subnets_search() as $sub) {
-                $ips = $Addresses->fetch_subnet_addresses($sub->id,null, null, ['ip_addr', 'description', 'hostname']);
-                foreach ($ips as $ip) {
-                    $AllIP[$ip->ip] = (array)$ip;
-                }
-            }
-        }
 
         // include content
         $filename = "$_GET[subnetId].php";
