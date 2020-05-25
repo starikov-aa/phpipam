@@ -81,8 +81,8 @@ function print_leases($lease, $AllIP, $reservation, $IsManagement)
     $html[] = "<td class='actions'>";
     if ($IsManagement) {
         $html[] = "    <div class='btn-group'>";
-        $html[] =  "	<button class='btn btn-xs btn-default open_popup' data-class='500' data-ip_addr='".$lease['ip-address']."' data-script='app/admin/dhcp/edit-lease.php' data-action='edit'><i class='fa fa-pencil'></i></button>";
-        $html[] =  "	<button class='btn btn-xs btn-default open_popup' data-class='500' data-ip_addr='".$lease['ip-address']."' data-script='app/admin/dhcp/edit-lease.php' data-action='delete'><i class='fa fa-times'></i></button>";
+        $html[] =  "	<button class='btn btn-xs btn-default open_popup' data-class='500' data-ip_addr='".$lease['ip-address']."' data-hostname='".$Hostname."' data-script='app/admin/dhcp/edit-lease.php' data-action='edit'><i class='fa fa-pencil'></i></button>";
+        $html[] =  "	<button class='btn btn-xs btn-default open_popup' data-class='500' data-ip_addr='".$lease['ip-address']."' data-hostname='".$Hostname."' data-script='app/admin/dhcp/edit-lease.php' data-action='delete'><i class='fa fa-times'></i></button>";
         $html[] = "	</div>";
     }
     $html[] = "	</td>";

@@ -127,7 +127,7 @@ $_mac = isset($leaseInfo['hw-address']) ? $leaseInfo['hw-address'] : $reservatio
             <tr class="staticonly">
                 <td style="white-space: nowrap;"><?php print _('Hostname'); ?></td>
                 <td>
-                    <input type="text" id="hostname" name="hostname" class="form-control input-sm" value="<?php print @$leaseInfo['hostname']; ?>">
+                    <input type="text" id="hostname" name="hostname" class="form-control input-sm" value="<?php print $_POST['hostname']; ?>">
                 </td>
                 <td><a id="althostname"><?php print $ipamIpInfo['hostname']; ?><a/></a></td>
             </tr>
