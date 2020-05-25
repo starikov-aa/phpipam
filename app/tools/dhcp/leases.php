@@ -58,19 +58,35 @@ $table_headers = [
 function print_leases($lease, $AllIP, $reservation, $IsManagement)
 {
     // get
-    global $User;
+    global $User, $Subnets;
 
-    $IsReserved = is_array($reservation[$lease['ip-address']]) ? 'S' : 'D';
-    $HostnameIpam = empty($AllIP[$lease['ip-address']]['hostname']) ? '' : ' (' . $AllIP[$lease['ip-address']]['hostname'] . ')';
-    $HostnameDhcp = empty($lease['hostname']) ? $reservation[$lease['ip-address']]['hostname'] : $lease['hostname'];
-    $Hostname = ($HostnameDhcp === $AllIP[$lease['ip-address']]['hostname']) ? $HostnameDhcp : $HostnameDhcp . $HostnameIpam;
+    // выводим описание подсети
+    $subnetDesc = $AllIP[$lease['ip-address']]['sub_desc'];
+    if (empty($subnetDesc)){
+        $subnetDesc = $Subnets->find_subnet_by_ip($lease['ip-address'])->description;
+    }
+
+    $isReserved = !is_array($reservation[$lease['ip-address']]) ? 'D' : '';
+
+    // Задаем имя из lease, ipam или оба сразу
+    $ipamHN = @$AllIP[$lease['ip-address']]['hostname'];
+    if (!empty($lease['hostname'])){
+        $Hostname = $lease['hostname'];
+        if (!empty($ipamHN) && $ipamHN != $lease['hostname']){
+            $Hostname .= ' (' . $ipamHN . ')';
+        }
+    } elseif (!empty($ipamHN)) {
+        $Hostname = $ipamHN;
+    } else {
+        $Hostname = '---';
+    }
 
     // printed option to add defaults
     $printed_options = array();
 
     $html[] = "<tr>";
-    $html[] = " <td>" . $IsReserved . "</td>";
-    $html[] = " <td>" . $AllIP[$lease['ip-address']]['sub_desc'] . "</td>";
+    $html[] = " <td>" . $isReserved . "</td>";
+    $html[] = " <td>" . $subnetDesc . "</td>";
     $html[] = " <td>" . $lease['ip-address'] . "</td>";
     $html[] = " <td>" . $User->reformat_mac_address($lease['hw-address'], 1) . "</td>";
     $html[] = " <td>" . $lease['client_id'] . "</td>";

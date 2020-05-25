@@ -61,17 +61,6 @@ $tabs = array("subnets", "leases", "status", "settings", "server-config");
                 <?php
                 // include file
 
-                // get information for all IP
-                if (in_array($_GET[subnetId], ['leases', 'reservations'])){
-                    $AllIP = [];
-                    foreach ($Subnets->fetch_all_subnets_search() as $sub) {
-                        $ips = $Addresses->fetch_subnet_addresses($sub->id,null, null, ['ip_addr', 'description', 'hostname']);
-                        foreach ($ips as $ip) {
-                            $AllIP[$ip->ip] = (array)$ip;
-                        }
-                    }
-                }
-
                 if (!file_exists(dirname(__FILE__) . "/$_GET[subnetId].php")) {
                     $Result->show("danger", "Invalid request", true);
                 } elseif (!in_array($_GET['subnetId'], $tabs)) {

@@ -21,6 +21,18 @@ $User->check_module_permissions ("dhcp", User::ACCESS_R, true, false);
                     <textarea class="form-control" id="servers" name="servers">config in json format</textarea>
                 </div>
             </div>
+            <div class="form-group">
+                <label class="col-md-4 control-label" for="read_server">С какого сервера читать</label>
+                <div class="col-md-4">
+                    <select class="form-control" id="read_server" name="read_server"></select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-md-4 control-label" for="read_server">На какой сервер писать</label>
+                <div class="col-md-4">
+                    <select class="form-control" id="write_server" name="read_server"></select>
+                </div>
+            </div>
 
             <!-- Multiple Checkboxes -->
             <div class="form-group">

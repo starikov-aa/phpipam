@@ -554,7 +554,7 @@ class DHCP_kea extends Common_functions
                             }
 
                             // reformat
-                            $this->reservations4[$r['ip-address']] = $this->reformat_empty_array_fields($this->reservations4[$r['ip-address']], "/");
+                            //$this->reservations4[$r['ip-address']] = $this->reformat_empty_array_fields($this->reservations4[$r['ip-address']], "/-");
                         }
                     }
                 }
@@ -736,7 +736,7 @@ class DHCP_kea extends Common_functions
      */
     public function write_config($service, $arguments)
     {
-        $servers = $this->get_server('all');
+        $servers = $this->get_server('primary');
         if ($servers) {
             foreach ($servers as $s) {
 

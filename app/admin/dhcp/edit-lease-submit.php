@@ -28,14 +28,14 @@ if ($ipObj) {
     $address = (array)$ipObj;
 }
 
+$address['hostname'] = $_POST['hostname'];
 $address['description'] = $_POST['description'];
 $address['state'] = 4;
 $address['ip_addr'] = $Subnets->transform_address($_POST['ip_addr'], 'decimal');
 $address['mac'] = $User->reformat_mac_address($_POST['hwaddr'], 1);
 
 // формируем массив с доп оциями для резервирования.
-$ap1 = ['hostname' => $_POST['hostname'],
-        'boot-file-name' => $_POST['boot-file-name'],
+$ap1 = ['boot-file-name' => $_POST['boot-file-name'],
         'next-server' => $_POST['next-server']
 ];
 $ap2 = json_decode($_POST['additional_settings'], true);
@@ -56,7 +56,7 @@ if ($_POST['action'] == 'edit' || $_POST['action'] == 'add') {
         $address['action'] = 'edit';
         $Addresses->modify_address($address);
     } else {
-        $subNetId = $Subnets->find_subnet_by_ip($_POST['ip_addr']);
+        $subNetId = $Subnets->find_subnet_by_ip($_POST['ip_addr'])->id;
         if ($subNetId) {
             $address['subnetId'] = $subNetId;
             $address['action'] = 'add';

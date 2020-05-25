@@ -3659,15 +3659,15 @@ class Subnets extends Common_functions {
      */
     public function find_subnet_by_ip($ip){
 	    $curMask = 0;
-	    $subId = false;
-        foreach ($this->fetch_all_subnets_search() as $subItem) {
+	    $subObj = false;
+        foreach ($this->fetch_all_subnets() as $subItem) {
             $c = $this->isIpInRange($ip, long2ip($subItem->subnet) . '/' . $subItem->mask);
             if($c && $subItem->mask > $curMask) {
                 $curMask = $subItem->mask;
-                $subId = $subItem->id;
+                $subObj = $subItem;
             }
         }
-        return $subId;
+        return $subObj;
     }
 
 }
