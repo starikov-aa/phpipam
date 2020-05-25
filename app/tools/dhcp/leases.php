@@ -70,9 +70,10 @@ function print_leases($lease, $AllIP, $reservation, $IsManagement)
 
     // Задаем имя из lease, ipam или оба сразу
     $ipamHN = @$AllIP[$lease['ip-address']]['hostname'];
-    if (!empty($lease['hostname'])){
-        $Hostname = $lease['hostname'];
-        if (!empty($ipamHN) && $ipamHN != $lease['hostname']){
+    $leaseHN = preg_replace("/\.+$/", "", $lease['hostname']);
+    if (!empty($leaseHN)){
+        $Hostname = $leaseHN;
+        if (!empty($ipamHN) && $ipamHN != $leaseHN){
             $Hostname .= ' (' . $ipamHN . ')';
         }
     } elseif (!empty($ipamHN)) {
