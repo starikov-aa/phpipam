@@ -15,6 +15,7 @@ $tabs = array("subnets", "leases");
 <?php if($User->settings->enableDHCP==1 && $User->get_module_permissions ("dhcp")>=User::ACCESS_R) { ?>
 
     <?php
+
     # validate DHCP settings - JSON
     if ($Tools->validate_json_string($User->settings->DHCP)===false) {
         $Result->show("danger", "Error parsing DHCP settings: ".$Tools->json_error, false);

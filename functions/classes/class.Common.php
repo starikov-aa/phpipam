@@ -2118,4 +2118,22 @@ class Common_functions  {
         return ($ip >=$range_start && $ip <= $range_end) ? true : false;
     }
 
+
+    /**
+     * @param $arrayForSearch
+     * @param $keyForSearch
+     * @param $searchValue
+     * @param $returnArrayId
+     * @return bool|mixed
+     */
+    public function findInAssocArray($arrayForSearch, $keyForSearch, $searchValue, $returnArrayId = false){
+        $Result = false;
+        $id = array_search($searchValue, array_column($arrayForSearch, $keyForSearch));
+        if ($id !== false){
+            $Result = $returnArrayId ? $id : $arrayForSearch[$id];
+        }
+        return $Result;
+    }
+
+
 }

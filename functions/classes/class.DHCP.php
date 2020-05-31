@@ -378,4 +378,12 @@ class DHCP extends Common_functions
         return $this->DHCP_server->get_servers_config();
     }
 
+    /**
+     * @return mixed
+     */
+    public function write_subnet($data, $type = 'IPv4')
+    {
+        $this->DHCP_server->write_subnet($data, $type);
+    }
+
 }

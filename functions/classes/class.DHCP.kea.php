@@ -793,14 +793,14 @@ class DHCP_kea extends Common_functions
                 $tmp = $result[$service]['subnet' . $ipv][$subnet_id_found]['reservations'][$r_num];
                 $result[$service]['subnet' . $ipv][$subnet_id_found]['reservations'][$r_num] = array_merge($tmp, $additional_settings);
                 //print_r($result[$service]['subnet' . $ipv][$subnet_id_found]['reservations'][$r_num]);
-            } elseif ($r_num === false && !in_array($mac, array_column($r_list, 'hw-address'))){
+            } elseif ($r_num === false && !in_array($mac, array_column($r_list, 'hw-address'))) {
                 if ($this->isIpInRange($ip, $subnet['subnet'])) {
                     $result[$service]['subnet' . $ipv][$subnet_id_found]['reservations'][] = [
                         'ip-address' => $ip,
                         'hw-address' => $mac
                     ];
-                } else{
-                    throw new exception ("Ip ".$ip." is not on subnet " . $subnet_id);
+                } else {
+                    throw new exception ("Ip " . $ip . " is not on subnet " . $subnet_id);
                 }
             }
             $this->write_config($service, $result);
@@ -934,11 +934,50 @@ class DHCP_kea extends Common_functions
         return $result;
     }
 
-    public function get_subnets(){
+    public function write_subnet($data, $type = 'IPv4')
+    {
+        $ipv = $type == 'IPv4' ? '4' : '6';
+        $service = $this->get_service_name('dhcp', $type);
+        $result = $this->config;
 
+        $currentSubnetNum = $this->findInAssocArray($this->subnets4, 'id', $data['id'], true);
+
+        $data['id'] = intval($data['id']);
+        $data['valid-lifetime'] = intval($data['valid-lifetime']) ?? 0;
+
+        if ($currentSubnetNum !== false) {
+            $tw = &$result[$service]['subnet' . $ipv][$currentSubnetNum];
+        } else {
+            $tw = &$result[$service]['subnet' . $ipv][];
+        }
+
+        foreach ($data as $k => $v) {
+            if (empty($v)) continue;
+            if ($k == 'option-data') {
+                foreach ($v as $op_k => $op_v) {
+                    if (empty($op_v)) continue;
+                    $currentOpId = $this->findInAssocArray($tw['option-data'], 'name', $op_k, true);
+
+                    if ($currentOpId !== false) {
+                        $tw['option-data'][$currentOpId]['data'] = $op_v;
+                    } else {
+                        if (in_array($op_k, ['domain-name-servers', 'domain-name', 'routers'])) {
+                            $tw['option-data'][] = ['name' => $op_k, 'data' => $op_v];
+                        }
+                    }
+                }
+            } else {
+                $tw[$k] = $v;
+            }
+        }
+
+        //print_r($tw);
+
+        $this->write_config($service, $result);
     }
 
-    public function add_lease($ip, $hw_addr, $subnet_id)
+    public
+    function add_lease($ip, $hw_addr, $subnet_id)
     {
 
     }

@@ -13,6 +13,16 @@ $tabs = array("subnets", "leases", "status", "settings", "server-config");
     <br>
 
     <?php
+
+    // Check admin page
+    if ($User->is_admin(false)) {
+        if ($_GET['page'] == "administration") {
+            $IsManagement = true;
+        } else {
+            $IsManagement = false;
+        }
+    }
+
     # perm check
     if ($User->get_module_permissions("dhcp") == User::ACCESS_NONE) {
         $Result->show("danger", _("You do not have permissions to access this module"), false);

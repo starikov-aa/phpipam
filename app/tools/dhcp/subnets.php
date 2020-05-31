@@ -13,24 +13,32 @@ $User->check_module_permissions("dhcp", User::ACCESS_R, true, false);
 $subnets4 = $DHCP->read_subnets("IPv4");
 $subnets6 = $DHCP->read_subnets("IPv6");
 
+$table_headers = [
+    'ID',
+    'Subnet',
+    'Pools',
+    'Options',
+    ''
+];
+
+
 // this function returns single item as table item for subnets
-function print_subnets($s)
+function print_subnets($s, $IsManagement)
 {
     // cast
-    $s = (object)$s;
     // printed option to add defaults
     $printed_options = array();
     // get config
     global $config;
 
     $html[] = "<tr>";
+    $html[] = " <td>" . $s['id'] . "</td>";
     // subnet
-    $html[] = " <td>" . $s->subnet . "</td>";
-    $html[] = " <td>" . $s->id . "</td>";
+    $html[] = " <td>" . $s['subnet'] . "</td>";
     // pools
     $html[] = " <td>";
-    if (sizeof($s->pools) > 0) {
-        foreach ($s->pools as $p) {
+    if (sizeof($s['pools']) > 0) {
+        foreach ($s['pools'] as $p) {
             $html[] = $p['pool'] . "<br>";
         }
     } else {
@@ -39,8 +47,8 @@ function print_subnets($s)
     $html[] = " </td>";
     // options
     $html[] = " <td>";
-    if (sizeof($s->{"option-data"}) > 0) {
-        foreach ($s->{"option-data"} as $p) {
+    if (sizeof($s['option-data']) > 0) {
+        foreach ($s['option-data'] as $p) {
             $html[] = $p['name'] . ": " . $p['data'] . "<br>";
             // save to printed options vas
             $printed_options[] = $p['name'];
@@ -63,6 +71,14 @@ function print_subnets($s)
     }
 
     $html[] = " </td>";
+    $html[] = "<td class='actions'>";
+    if ($IsManagement) {
+        $html[] = "    <div class='btn-group'>";
+        $html[] =  "	<button class='btn btn-xs btn-default open_popup' data-class='500' data-id='".$s['id']."' data-hostname='".$Hostname."' data-script='app/admin/dhcp/edit-subnet.php' data-action='edit'><i class='fa fa-pencil'></i></button>";
+        $html[] =  "	<button class='btn btn-xs btn-default open_popup' data-class='500' data-id='".$s['id']."' data-hostname='".$Hostname."' data-script='app/admin/dhcp/edit-subnet.php' data-action='delete'><i class='fa fa-times'></i></button>";
+        $html[] = "	</div>";
+    }
+    $html[] = "	</td>";
     $html[] = "</tr>";
     // return
     return $html;
@@ -75,15 +91,13 @@ function print_subnets($s)
 <hr>
 
 <!-- Manage -->
-<?php if ($User->is_admin(false)) { ?>
-    <?php if ($_GET['page'] == "administration") { ?>
-        <a class='btn btn-sm btn-default btn-default btn-success dhcp-subnet' data-action='add' data-id=''><i
-                    class='fa fa-plus'></i> <?php print _('Add'); ?></a>
-    <?php } else { ?>
-        <a class='btn btn-sm btn-default btn-default btn-success'
-           href="<?php print create_link("administration", "dhcp"); ?>"><i
-                    class='fa fa-pencil'></i> <?php print _('Manage'); ?></a>
-    <?php } ?>
+<?php if ($IsManagement) { ?>
+    <a class='btn btn-sm btn-default btn-default btn-success dhcp-leases open_popup' data-class='500' data-action='add'
+       data-script='app/admin/dhcp/edit-subnet.php'><i class='fa fa-plus'></i> <?php print _('Add'); ?></a>
+<?php } else { ?>
+    <a class='btn btn-sm btn-default btn-default btn-success'
+       href="<?php print create_link("administration", "dhcp", "subnets"); ?>"><i
+            class='fa fa-pencil'></i> <?php print _('Manage'); ?></a>
 <?php } ?>
 <br>
 
@@ -93,55 +107,57 @@ function print_subnets($s)
     <!-- Headers -->
     <thead>
     <tr>
-        <th><?php print _('Subnet'); ?></th>
-        <th><?php print _('id'); ?></th>
-        <th><?php print _('Pools'); ?></th>
-        <th><?php print _('Options'); ?></th>
+        <?php foreach ($table_headers as $hn) { ?>
+            <th><?php print _($hn); ?></th>
+        <?php } ?>
     </tr>
     </thead>
 
     <!-- subnets -->
     <?php
+
+    $headCount = count($table_headers);
+
     // v4
     $html[] = "<tr>";
-    $html[] = "<td class='th' colspan='4'>" . _("IPv4 subnets") . "</td>";
+    $html[] = "<td class='th' colspan='".$headCount."'>" . _("IPv4 subnets") . "</td>";
     $html[] = "</tr>";
 
     // IPv4 not configured
     if ($subnets4 === false) {
         $html[] = "<tr>";
-        $html[] = " <td colspan='4'>" . $Result->show("info", _("IPv4 not configured on DHCP server"), false, false, true) . "</td>";
+        $html[] = " <td colspan='".$headCount."'>" . $Result->show("info", _("IPv4 not configured on DHCP server"), false, false, true) . "</td>";
         $html[] = "</tr>";
     } // no subnets found
     elseif (sizeof($subnets4) == 0) {
         $html[] = "<tr>";
-        $html[] = " <td colspan='4'>" . $Result->show("info", _("No IPv4 subnets"), false, false, true) . "</td>";
+        $html[] = " <td colspan='".$headCount."'>" . $Result->show("info", _("No IPv4 subnets"), false, false, true) . "</td>";
         $html[] = "</tr>";
     } else {
         foreach ($subnets4 as $s) {
-            $html = array_merge($html, print_subnets($s));
+            $html = array_merge($html, print_subnets($s, $IsManagement));
         }
     }
 
 
     // v6
     $html[] = "<tr>";
-    $html[] = "<td class='th' colspan='4'>" . _("IPv6 subnets") . "</td>";
+    $html[] = "<td class='th' colspan='".$headCount."'>" . _("IPv6 subnets") . "</td>";
     $html[] = "</tr>";
 
     // IPv6 not configured
     if ($subnets6 === false) {
         $html[] = "<tr>";
-        $html[] = " <td colspan='4'>" . $Result->show("info", _("IPv6 not configured on DHCP server"), false, false, true) . "</td>";
+        $html[] = " <td colspan='".$headCount."'>" . $Result->show("info", _("IPv6 not configured on DHCP server"), false, false, true) . "</td>";
         $html[] = "</tr>";
     } // no subnets found
     elseif (sizeof($subnets6) == 0) {
         $html[] = "<tr>";
-        $html[] = " <td colspan='4'>" . $Result->show("info", _("No IPv6 subnets"), false, false, true) . "</td>";
+        $html[] = " <td colspan='".$headCount."'>" . $Result->show("info", _("No IPv6 subnets"), false, false, true) . "</td>";
         $html[] = "</tr>";
     } else {
         foreach ($subnets6 as $s) {
-            $html = array_merge($html, print_subnets($s));
+            $html = array_merge($html, print_subnets($s, $IsManagement));
         }
     }
 
