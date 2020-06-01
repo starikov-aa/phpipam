@@ -10,6 +10,7 @@ require_once(dirname(__FILE__) . '/../../../functions/functions.php');
 $Database = new Database_PDO;
 $User = new User ($Database);
 $Admin = new Admin ($Database);
+$Subnets = new Subnets ($Database);
 $Result = new Result ();
 $dhcp = new DHCP('kea');
 $common = new Common_functions();
@@ -26,32 +27,62 @@ $_POST = $User->strip_input_tags($_POST);
 # validate action
 $Admin->validate_action($_POST['action'], true);
 
-# get subnets
-$subnets4 = $dhcp->read_subnets("IPv4");
-$subnets6 = $dhcp->read_subnets("IPv6");
+$ipType = "IPv4";
+
+# get subnets from ipam
+$ipamSubnets = $Subnets->fetch_all_subnets();
+
+# get subnets from dhcp
+$dhcpSubnets = $dhcp->read_subnets($ipType);
 
 # get subnet of ID
-$curSubnet4 = $subnets4[$_POST['id']];
-$curSubnet6 = $subnets6[$_POST['id']];
+$curSubnet = $dhcpSubnets[$_POST['id']];
 
 # вытаскиваем настройки переопределеные на уровне подсети
-$routerAddr = $common->findInAssocArray($curSubnet4['option-data'], 'name', 'routers')['data'] ?? '';
-$domainName = $common->findInAssocArray($curSubnet4['option-data'], 'name', 'domain-name')['data'] ?? '';
-$domainNameServers = $common->findInAssocArray($curSubnet4['option-data'], 'name', 'domain-name-servers')['data'] ?? '';
+$routerAddr = $common->findInAssocArray($curSubnet['option-data'], 'name', 'routers')['data'] ?? '';
+$domainName = $common->findInAssocArray($curSubnet['option-data'], 'name', 'domain-name')['data'] ?? '';
+$domainNameServers = $common->findInAssocArray($curSubnet['option-data'], 'name', 'domain-name-servers')['data'] ?? '';
 
-//print_r($curSubnet4);
-
-# ID must be numeric
-//if($_POST['action']="edit" && !empty($_POST['address']) && !empty($_POST['hwaddr'])) {
-//$Result->show("danger", _("Invalid ID"), true, true);
-//}
+foreach ($ipamSubnets as $jis) {
+    $jsData[$jis->id] = ['id' => $jis->id,
+        'subnet' => $Subnets->transform_address($jis->subnet, 'dotted') . '/' . $jis->mask,
+        'gateway' => @$jis->gateway];
+}
 
 ?>
 
 <script>
-    if ($('#action').val() == 'edit'){
-        $(".noEdit").prop('readonly', true);
+    if ($('#action').val() == 'edit') {
+        //$(".noEdit").prop('readonly', true);
     }
+
+    var subnets = '<?php print json_encode($jsData, JSON_UNESCAPED_SLASHES); ?>';
+    subnets = $.parseJSON(subnets);
+    //alert(subnets[4].subnet);
+
+    $('#subnet-list').change(function () {
+        sid = $(this).val();
+        $('#id').val(sid);
+        $('#subnet').val(subnets[sid].subnet);
+        pool = calculateCidrRange(subnets[sid].subnet);
+        $('#pools').val(pool[0] + '-' + pool[1]);
+    })
+
+    function ip4ToInt(ip){
+        return ip.split('.').reduce((int, oct) => (int << 8) + parseInt(oct, 10), 0) >>> 0;
+    }
+
+    function intToIp4(int){
+        return [(int >>> 24) & 0xFF, (int >>> 16) & 0xFF,
+            (int >>> 8) & 0xFF, int & 0xFF].join('.');
+    }
+
+    function calculateCidrRange(cidr){
+        const [range, bits = 32] = cidr.split('/');
+        const mask = ~(2 ** (32 - bits) - 1);
+        return [intToIp4(ip4ToInt(range) & mask), intToIp4(ip4ToInt(range) | ~mask)];
+    }
+
 </script>
 
 <!-- header -->
@@ -63,19 +94,15 @@ $domainNameServers = $common->findInAssocArray($curSubnet4['option-data'], 'name
         <table class="table table-noborder table-condensed">
             <!-- ID -->
             <tr>
-                <td style="white-space: nowrap;"><?php print _('ID'); ?></td>
+                <td
+                "><?php print _('Subnet'); ?></td>
                 <td>
-                    <input type="text" id="ids" name="s[id]" class="form-control input-sm noEdit"
-                           value="<?php print $curSubnet4['id']; ?>">
-                </td>
-            </tr>
-            <!-- Subnet -->
-            <tr>
-                <td style="width:120px;"><?php print _('Subnet'); ?></td>
-                <td>
-                    <input type="text" id="subnet" name="s[subnet]"
-                           class="form-control input-sm readonly-inp-without-static"
-                           value="<?php print $curSubnet4['subnet']; ?>">
+                    <select name="subnet-list" id="subnet-list" class="form-control input-sm">
+                        <?php foreach ($ipamSubnets as $isi) {
+                            $on = ($isi->id == $_POST['id']) ? 'selected' : '';
+                            print '<option value="' . $isi->id . '" ' . $on . '>' . $Subnets->transform_address($isi->subnet, 'dotted') . '/' . $isi->mask . ' (' . $isi->description . ')</option>';
+                        } ?>
+                    </select>
                 </td>
             </tr>
 
@@ -83,8 +110,8 @@ $domainNameServers = $common->findInAssocArray($curSubnet4['option-data'], 'name
             <tr>
                 <td style="white-space: nowrap;"><?php print _('Pools'); ?></td>
                 <td>
-                    <input type="text" id="pool" name="s[pools][][pool]" class="form-control input-sm"
-                           value="<?php print $curSubnet4['pools'][0]['pool']; ?>">
+                    <input type="text" id="pools" name="s[pools][][pool]" class="form-control input-sm"
+                           value="<?php print $curSubnet['pools'][0]['pool']; ?>">
                     <small id="passwordHelpBlock" class="form-text text-muted">
                         Format: StartIP-EndIP. e.g.: 192.168.0.0-192.168.0.254
                     </small>
@@ -93,7 +120,7 @@ $domainNameServers = $common->findInAssocArray($curSubnet4['option-data'], 'name
 
             <!-- Dns name -->
             <tr>
-                <td style="white-space: nowrap;"><?php print _('Dns name'); ?></td>
+                <td style="white-space: nowrap;"><?php print _('Dns suffix'); ?></td>
                 <td>
                     <input type="text" id="dns-name" name="s[option-data][domain-name]" class="form-control input-sm"
                            value="<?php print $domainName; ?>">
@@ -103,20 +130,21 @@ $domainNameServers = $common->findInAssocArray($curSubnet4['option-data'], 'name
             <tr>
                 <td style="white-space: nowrap;"><?php print _('Dns servers'); ?></td>
                 <td>
-                    <input type="text" id="dns-name-servers" name="s[option-data][domain-name-servers]" class="form-control input-sm"
-                           value="<?php print $domainNameServers; ?>"></div><div class="col">
+                    <input type="text" id="dns-name-servers" name="s[option-data][domain-name-servers]"
+                           class="form-control input-sm"
+                           value="<?php print $domainNameServers; ?>">
                 </td>
             </tr>
             <!-- Default dns servers -->
-            <tr>
-                <td style="white-space: nowrap;"><?php print _('Use default dns servers'); ?></td>
-                <td>
-                    <input type="checkbox" name="default-dns" id="default-dns" checked>
-                </td>
-            </tr>
+<!--            <tr>-->
+<!--                <td style="white-space: nowrap;">--><?php //print _('Use default dns servers'); ?><!--</td>-->
+<!--                <td>-->
+<!--                    <input type="checkbox" name="default-dns" id="default-dns" checked>-->
+<!--                </td>-->
+<!--            </tr>-->
             <!-- Router -->
             <tr>
-                <td style="white-space: nowrap;"><?php print _('Router'); ?></td>
+                <td style="white-space: nowrap;"><?php print _('Gateway'); ?></td>
                 <td>
                     <input type="text" id="routers" name="s[option-data][routers]" class="form-control input-sm"
                            value="<?php print $routerAddr; ?>">
@@ -126,8 +154,8 @@ $domainNameServers = $common->findInAssocArray($curSubnet4['option-data'], 'name
             <tr>
                 <td style="white-space: nowrap;"><?php print _('Relay'); ?></td>
                 <td>
-                    <input type="text" id="relay" name="s[relay][ip-addresses][]" class="form-control input-sm"
-                           value="<?php print $curSubnet4['relay']['ip-addresses'][0]; ?>">
+                    <input type="text" id="relay" name="s[relay]" class="form-control input-sm"
+                           value="<?php print $curSubnet['relay']['ip-addresses'][0]; ?>">
                 </td>
             </tr>
             <!-- Valid Life Time -->
@@ -135,7 +163,7 @@ $domainNameServers = $common->findInAssocArray($curSubnet4['option-data'], 'name
                 <td style="white-space: nowrap;"><?php print _('Life Time'); ?></td>
                 <td>
                     <input type="text" id="valid-lifetime" name="s[valid-lifetime]" class="form-control input-sm"
-                           value="<?php print $curSubnet4['valid-lifetime']; ?>">
+                           value="<?php print $curSubnet['valid-lifetime']; ?>">
                 </td>
             </tr>
             <!-- Next server -->
@@ -143,11 +171,13 @@ $domainNameServers = $common->findInAssocArray($curSubnet4['option-data'], 'name
                 <td style="white-space: nowrap;"><?php print _('Next server'); ?></td>
                 <td>
                     <input type="text" id="next-server" name="s[next-server]" class="form-control input-sm"
-                           value="<?php print @$curSubnet4['next-server']; ?>">
+                           value="<?php print @$curSubnet['next-server']; ?>">
                 </td>
             </tr>
         </table>
         <input type="hidden" id="action" name="action" value="<?php print $_POST['action']; ?>">
+        <input type="hidden" id="id" name="s[id]" value="<?php print @$jsData[$_POST['id']]['id']; ?>">
+        <input type="hidden" id="subnet" name="s[subnet]" value="<?php print @$jsData[$_POST['id']]['subnet']; ?>">
         <input type="hidden" name="csrf_cookie" value="<?php print $csrf; ?>">
     </form>
 

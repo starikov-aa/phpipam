@@ -19,15 +19,15 @@ $User->check_maintaneance_mode();
 # strip input tags
 $_POST = $Admin->strip_input_tags($_POST);
 
+$ipType = "IPv4";
+
 $dhcp = new DHCP('kea');
 
 # get subnets
-$subnets4 = $dhcp->read_subnets("IPv4");
-$subnets6 = $dhcp->read_subnets("IPv6");
+$dhcpSubnets = $dhcp->read_subnets($ipType);
 
 # get subnet of ID
-$curSubnet4 = $subnets4[$_POST['id']];
-$curSubnet6 = $subnets6[$_POST['id']];
+$curSubnet = $dhcpSubnets[$_POST['s']['id']] ?? false;
 
 // формируем массив с доп оциями для резервирования.
 $ap1 = ['boot-file-name' => $_POST['boot-file-name'],
@@ -37,22 +37,52 @@ $ap2 = json_decode($_POST['additional_settings'], true);
 $ap2 = is_array($ap2) ? $ap2 : [];
 $reservationAdditionSettings = array_merge($ap1, $ap2);
 
+
+$r = [];
+
 if ($_POST['action'] == 'edit' || $_POST['action'] == 'add') {
+
+    $pd = $_POST['s'];
+    $curSubnet['id'] = (int)$pd['id'];
+    $curSubnet['subnet'] = $pd['subnet'];
+    $curSubnet['pools'] = $pd['pools'];
+    $curSubnet['valid-lifetime'] = (int)$pd['valid-lifetime'] ?: 4000;
+    $curSubnet['next-server'] = $pd['next-server'];
+
+    if (!empty($pd['relay']) &&
+        !in_array($pd['relay'], $curSubnet['relay']['ip-addresses'])) {
+        $curSubnet['relay']['ip-addresses'][] = $pd['relay'];
+    }
+
+    // обновляем/добавляем опции
+    $c = 1;
+    foreach ($pd['option-data'] as $od_k => $od_v) {
+        if (empty($od_v)) continue;
+        $odItemKey = $common->findInAssocArray($curSubnet['option-data'], 'name', $od_k, true);
+        if ($odItemKey !== false) {
+            $opPath = &$curSubnet['option-data'][$odItemKey];
+        } else {
+            $opPath = &$curSubnet['option-data'][];
+        }
+
+        $opPath['name'] = $od_k;
+        $opPath['data'] = $od_v;
+    }
+
+    print_r($curSubnet);
+
     try {
-        $dhcp->write_subnet($_POST['s']);
-
-
+        $dhcp->write_subnet($curSubnet, $ipType);
     } catch (Throwable $e) {
         $Result->show("danger", _($e->getMessage()), true);
     }
 
-    $Result->show("success", _("Lease $_POST[action] success"), false);
 } elseif ($_POST['action'] == 'delete') {
     try {
-        $dhcp->delete_reservation($_POST['ip_addr'], 'IPv4');
+        //$dhcp->delete_reservation($_POST['ip_addr'], 'IPv4');
     } catch (Throwable $e) {
         $Result->show("danger", _($e->getMessage()), true);
     }
 }
 
-$Result->show("danger", print_r($_PO1ST), true);
+$Result->show("danger", print_r($_POST, true), true);

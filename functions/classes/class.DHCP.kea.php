@@ -942,42 +942,15 @@ class DHCP_kea extends Common_functions
 
         $currentSubnetNum = $this->findInAssocArray($this->subnets4, 'id', $data['id'], true);
 
-        $data['id'] = intval($data['id']);
-        $data['valid-lifetime'] = intval($data['valid-lifetime']) ?? 0;
-
         if ($currentSubnetNum !== false) {
-            $tw = &$result[$service]['subnet' . $ipv][$currentSubnetNum];
+            $result[$service]['subnet' . $ipv][$currentSubnetNum] = $data;
         } else {
-            $tw = &$result[$service]['subnet' . $ipv][];
+            $result[$service]['subnet' . $ipv][] = $data;
         }
-
-        foreach ($data as $k => $v) {
-            if (empty($v)) continue;
-            if ($k == 'option-data') {
-                foreach ($v as $op_k => $op_v) {
-                    if (empty($op_v)) continue;
-                    $currentOpId = $this->findInAssocArray($tw['option-data'], 'name', $op_k, true);
-
-                    if ($currentOpId !== false) {
-                        $tw['option-data'][$currentOpId]['data'] = $op_v;
-                    } else {
-                        if (in_array($op_k, ['domain-name-servers', 'domain-name', 'routers'])) {
-                            $tw['option-data'][] = ['name' => $op_k, 'data' => $op_v];
-                        }
-                    }
-                }
-            } else {
-                $tw[$k] = $v;
-            }
-        }
-
-        //print_r($tw);
-
         $this->write_config($service, $result);
     }
 
-    public
-    function add_lease($ip, $hw_addr, $subnet_id)
+    public function add_lease($ip, $hw_addr, $subnet_id)
     {
 
     }
