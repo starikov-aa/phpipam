@@ -46,7 +46,7 @@ $domainNameServers = $common->findInAssocArray($curSubnet['option-data'], 'name'
 foreach ($ipamSubnets as $jis) {
     $jsData[$jis->id] = ['id' => $jis->id,
         'subnet' => $Subnets->transform_address($jis->subnet, 'dotted') . '/' . $jis->mask,
-        'gateway' => @$jis->gateway];
+        'custom_Gateway' => @$jis->custom_Gateway];
 }
 
 ?>

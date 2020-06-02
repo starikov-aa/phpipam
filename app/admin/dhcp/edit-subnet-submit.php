@@ -37,11 +37,7 @@ $ap2 = json_decode($_POST['additional_settings'], true);
 $ap2 = is_array($ap2) ? $ap2 : [];
 $reservationAdditionSettings = array_merge($ap1, $ap2);
 
-
-$r = [];
-
 if ($_POST['action'] == 'edit' || $_POST['action'] == 'add') {
-
     $pd = $_POST['s'];
     $curSubnet['id'] = (int)$pd['id'];
     $curSubnet['subnet'] = $pd['subnet'];
@@ -55,7 +51,6 @@ if ($_POST['action'] == 'edit' || $_POST['action'] == 'add') {
     }
 
     // обновляем/добавляем опции
-    $c = 1;
     foreach ($pd['option-data'] as $od_k => $od_v) {
         if (empty($od_v)) continue;
         $odItemKey = $common->findInAssocArray($curSubnet['option-data'], 'name', $od_k, true);
@@ -69,14 +64,13 @@ if ($_POST['action'] == 'edit' || $_POST['action'] == 'add') {
         $opPath['data'] = $od_v;
     }
 
-    print_r($curSubnet);
+    //print_r($curSubnet);
 
     try {
         $dhcp->write_subnet($curSubnet, $ipType);
     } catch (Throwable $e) {
         $Result->show("danger", _($e->getMessage()), true);
     }
-
 } elseif ($_POST['action'] == 'delete') {
     try {
         //$dhcp->delete_reservation($_POST['ip_addr'], 'IPv4');
@@ -85,4 +79,4 @@ if ($_POST['action'] == 'edit' || $_POST['action'] == 'add') {
     }
 }
 
-$Result->show("danger", print_r($_POST, true), true);
+$Result->show("success", _("Subnet $_POST[action] success"), false);

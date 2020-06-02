@@ -386,4 +386,38 @@ class DHCP extends Common_functions
         $this->DHCP_server->write_subnet($data, $type);
     }
 
+    /**
+     * @param $hex
+     * @return string
+     */
+    public function DomainSearch2Text($hex){
+        $r = [];
+        for ($i=0; $i<60; $i++){
+            $size = hexdec(substr($hex, $i, 2));
+            if ($size != 0) {
+                $tmp[] = hex2bin(substr($hex, $i+2, $size*2));
+            } else {
+                $r[]= join($tmp, ".");
+                unset($tmp);
+            }
+            $i += $size*2+1;
+        }
+        return join($r, ';');
+    }
+
+    /**
+     * @param $domains
+     * @return string
+     */
+    public function Text2DomainSearch($domains){
+        $r = '';
+        foreach ($domains as $d){
+            $words = explode('.', $d);
+            foreach ($words as $w){
+                $r .= sprintf("%02x", strlen($w)) . bin2hex($w);
+            }
+            $r .= '00';
+        }
+        return $r;
+    }
 }

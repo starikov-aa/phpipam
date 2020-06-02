@@ -17,9 +17,9 @@ $tabs = array("subnets", "leases", "status", "settings", "server-config");
     // Check admin page
     if ($User->is_admin(false)) {
         if ($_GET['page'] == "administration") {
-            $IsManagement = true;
+            $isManagement = true;
         } else {
-            $IsManagement = false;
+            $isManagement = false;
         }
     }
 
