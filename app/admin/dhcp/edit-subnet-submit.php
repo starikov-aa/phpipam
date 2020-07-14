@@ -73,7 +73,7 @@ if ($_POST['action'] == 'edit' || $_POST['action'] == 'add') {
     }
 } elseif ($_POST['action'] == 'delete') {
     try {
-        //$dhcp->delete_reservation($_POST['ip_addr'], 'IPv4');
+        $dhcp->delete_subnet($_POST['ip_addr'], 'IPv4');
     } catch (Throwable $e) {
         $Result->show("danger", _($e->getMessage()), true);
     }

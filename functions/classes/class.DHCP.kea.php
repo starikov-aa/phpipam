@@ -916,7 +916,11 @@ class DHCP_kea extends Common_functions
         $servers = $this->get_server('all');
         if ($servers) {
             foreach ($servers as $s) {
-                $result[] = array_merge($this->api_request("ha-heartbeat", "dhcp4", "", $s['api_addr']), $s);
+                try {
+                    $result[$s['addr']] = array_merge($this->api_request("ha-heartbeat", "dhcp4", "", $s['api_addr']), $s);
+                } catch (Throwable $e) {
+                    $result[$s['addr']]['status'] = "Not available";
+                }
             }
         }
         return print_r($result, true);
@@ -928,7 +932,11 @@ class DHCP_kea extends Common_functions
         $servers = $this->get_server('all');
         if ($servers) {
             foreach ($servers as $s) {
-                $result[$s['name']] = $this->api_request('config-get', 'dhcp4', '', $s['api_addr'])['data'];
+                try {
+                    $result[$s['name']] = $this->api_request('config-get', 'dhcp4', '', $s['api_addr'])['data'];
+                } catch (Throwable $e) {
+                    $result[$s['name']] = "Not available";
+                }
             }
         }
         return $result;

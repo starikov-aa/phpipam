@@ -46,7 +46,7 @@ $table_headers = [
 
 
 // this function returns single item as table item for subnets
-function print_leases($lease, $AllIP, $reservation, $IsManagement)
+function print_leases($lease, $AllIP, $reservation, $isManagement)
 {
     // get
     global $User, $Subnets;
@@ -87,7 +87,7 @@ function print_leases($lease, $AllIP, $reservation, $IsManagement)
     $html[] = " <td>" . $Hostname . "</td>";
     $html[] = " <td>" . $AllIP[$lease['ip-address']]['description'] . "</td>";
     $html[] = "<td class='actions'>";
-    if ($IsManagement) {
+    if ($isManagement) {
         $html[] = "    <div class='btn-group'>";
         $html[] =  "	<button class='btn btn-xs btn-default open_popup' data-class='500' data-ip_addr='".$lease['ip-address']."' data-hostname='".$Hostname."' data-script='app/admin/dhcp/edit-lease.php' data-action='edit'><i class='fa fa-pencil'></i></button>";
         $html[] =  "	<button class='btn btn-xs btn-default open_popup' data-class='500' data-ip_addr='".$lease['ip-address']."' data-hostname='".$Hostname."' data-script='app/admin/dhcp/edit-lease.php' data-action='delete'><i class='fa fa-times'></i></button>";
@@ -107,7 +107,7 @@ function print_leases($lease, $AllIP, $reservation, $IsManagement)
 <hr>
 
 <!-- Manage -->
-<?php if ($IsManagement) { ?>
+<?php if ($isManagement) { ?>
     <a class='btn btn-sm btn-default btn-default btn-success dhcp-leases open_popup' data-action='add'
        data-script='app/admin/dhcp/edit-lease.php'><i class='fa fa-plus'></i> <?php print _('Add'); ?></a>
 <?php } else { ?>
@@ -151,13 +151,13 @@ function print_leases($lease, $AllIP, $reservation, $IsManagement)
         $html[] = "</tr>";
     } else {
         foreach ($leases4 as $lease) {
-            $html = array_merge($html, print_leases($lease, $AllIP, $reservation4, $IsManagement));
+            $html = array_merge($html, print_leases($lease, $AllIP, $reservation4, $isManagement));
             if (is_array($reservation4[$lease['ip-address']])) {
                 unset($reservation4[$lease['ip-address']]);
             }
         }
         foreach ($reservation4 as $r) {
-            $html = array_merge($html, print_leases($r, $AllIP, $reservation4, $IsManagement));
+            $html = array_merge($html, print_leases($r, $AllIP, $reservation4, $isManagement));
         }
     }
 
