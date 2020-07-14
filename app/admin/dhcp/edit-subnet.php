@@ -194,5 +194,8 @@ foreach ($ipamSubnets as $jis) {
         </button>
     </div>
     <!-- Result -->
-    <div class="editReservationResult" id="editSubnetResult"></div>
+    <div class="editReservationResult" id="editSubnetResult"><?php
+        echo "Routers: " . $common->findInAssocArray($curSubnet['option-data'], 'name', 'routers') . "<br>";
+        echo "DNS: " . $common->findInAssocArray($curSubnet['option-data'], 'name', 'domain-name-servers')['data'] . "<br>";
+        print_r($curSubnet['option-data']); ?></div>
 </div>
