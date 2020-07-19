@@ -160,7 +160,7 @@ foreach ($ipamSubnets as $jis) {
             </tr>
             <!-- Valid Life Time -->
             <tr>
-                <td style="white-space: nowrap;"><?php print _('Life Time'); ?></td>
+                <td style="white-space: nowrap;"><?php print _('Life Time (seconds)'); ?></td>
                 <td>
                     <input type="text" id="valid-lifetime" name="s[valid-lifetime]" class="form-control input-sm"
                            value="<?php print $curSubnet['valid-lifetime']; ?>">

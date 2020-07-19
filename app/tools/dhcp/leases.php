@@ -58,6 +58,7 @@ function print_leases($lease, $AllIP, $reservation, $isManagement)
     }
 
     $isReserved = !is_array($reservation[$lease['ip-address']]) ? 'D' : '';
+    $isExpired = !is_array($reservation[$lease['ip-address']]) ? $lease['expire'] : 'Static';
 
     // Задаем имя из lease, ipam или оба сразу
     $ipamHN = @$AllIP[$lease['ip-address']]['hostname'];
@@ -82,7 +83,7 @@ function print_leases($lease, $AllIP, $reservation, $isManagement)
     $html[] = " <td>" . $lease['ip-address'] . "</td>";
     $html[] = " <td>" . $User->reformat_mac_address($lease['hw-address'], 1) . "</td>";
     $html[] = " <td>" . $lease['client_id'] . "</td>";
-    $html[] = " <td>" . $lease['expire'] . "</td>";
+    $html[] = " <td>" . $isExpired . "</td>";
     $html[] = " <td>" . $lease['state'] . "</td>";
     $html[] = " <td>" . $Hostname . "</td>";
     $html[] = " <td>" . $AllIP[$lease['ip-address']]['description'] . "</td>";

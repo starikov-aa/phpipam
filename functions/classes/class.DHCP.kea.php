@@ -833,7 +833,7 @@ class DHCP_kea extends Common_functions
                     "hw-address" => $item['hw-address'],
                     "client_id" => $item['client-id'],
                     "valid_lifetime" => $item['valid-lft'],
-                    "expire" => date("Y-m-d H:i:s", $item['cltt']),
+                    "expire" => date("Y-m-d H:i:s", ($item['cltt'] + $item['valid-lft'])),
                     "subnet_id" => $item['subnet-id'],
                     "fqdn_fwd" => $item['fqdn-fwd'],
                     "fqdn_rev" => $item['fqdn-rev'],

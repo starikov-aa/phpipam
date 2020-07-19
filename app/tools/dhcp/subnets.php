@@ -22,7 +22,11 @@ $table_headers = [
     ''
 ];
 
-
+function secondsToTime($seconds) {
+    $dtF = new DateTime('@0');
+    $dtT = new DateTime("@$seconds");
+    return $dtF->diff($dtT)->format('%ad %H:%I:%S');
+}
 
 // this function returns single item as table item for subnets
 function print_subnets($s, $isManagement)
@@ -60,8 +64,11 @@ function print_subnets($s, $isManagement)
             $printed_options[] = $p['name'];
         }
     } else {
-        $html[] = "/";
+        //$html[] = "/";
     }
+
+    $html[] = "Lease life time: " . secondsToTime($s['valid-lifetime']) . "<br>";
+
     // add defaults
     $m = 0;
     if (isset($config['Dhcp4']['option-data'])) {
