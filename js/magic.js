@@ -280,6 +280,8 @@ $('table.sorted')
                  .attr('smartDisplay', true)
                  .attr('showPaginationSwitch', true)
                  .attr('minimumCountColumns', true)
+                 .attr('data-sort-class', 'table-active')
+                 .attr('data-sortable', true)
 
 $('table.nosearch')
                  .attr('data-search','false')

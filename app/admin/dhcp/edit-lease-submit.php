@@ -36,7 +36,7 @@ $address['mac'] = $User->reformat_mac_address($_POST['hwaddr'], 1);
 
 // формируем массив с доп оциями для резервирования.
 $ap1 = ['boot-file-name' => $_POST['boot-file-name'],
-        'next-server' => $_POST['next-server']
+    'next-server' => $_POST['next-server']
 ];
 $ap2 = json_decode($_POST['additional_settings'], true);
 $ap2 = is_array($ap2) ? $ap2 : [];
@@ -45,11 +45,11 @@ $reservationAdditionSettings = array_merge($ap1, $ap2);
 
 if ($_POST['action'] == 'edit' || $_POST['action'] == 'add') {
 //    if (!isset($reservation[$_POST['ip_addr']]) && $hwaddrs !== false) {
-        try {
-            $dhcp->write_reservation($_POST['ip_addr'], $_POST['hwaddr'], $_POST['subnet_id'], $reservationAdditionSettings);
-        } catch (Throwable $e) {
-            $Result->show("danger", _($e->getMessage()), true);
-        }
+    try {
+        $dhcp->write_reservation($_POST['ip_addr'], $_POST['hwaddr'], $_POST['subnet_id'], $reservationAdditionSettings);
+    } catch (Throwable $e) {
+        $Result->show("danger", _($e->getMessage()), true);
+    }
 //    }
 
     if ($ipObj) {
@@ -67,15 +67,16 @@ if ($_POST['action'] == 'edit' || $_POST['action'] == 'add') {
     }
     $Result->show("success", _("Lease $_POST[action] success"), false);
 } elseif ($_POST['action'] == 'delete') {
-    try {
-        $dhcp->delete_reservation($_POST['ip_addr'], 'IPv4');
-    } catch (Throwable $e) {
-        $Result->show("danger", _($e->getMessage()), true);
-    }
-
     if (isset($dhcp->read_leases()[$_POST['ip_addr']])) {
         try {
             $dhcp->delete_lease($_POST['ip_addr'], 'IPv4');
+        } catch (Throwable $e) {
+            $Result->show("danger", _($e->getMessage()), true);
+        }
+    }
+    if (isset($_POST['static'])) {
+        try {
+            $dhcp->delete_reservation($_POST['ip_addr'], 'IPv4');
         } catch (Throwable $e) {
             $Result->show("danger", _($e->getMessage()), true);
         }

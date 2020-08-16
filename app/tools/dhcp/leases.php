@@ -119,15 +119,30 @@ function print_leases($lease, $AllIP, $reservation, $isManagement)
 
 <br>
 
+<script>
+    function ipSorter(a, b) {
+        const num1 = Number(a.split(".").map((num) => (`000${num}`).slice(-3) ).join(""));
+        const num2 = Number(b.split(".").map((num) => (`000${num}`).slice(-3) ).join(""));
+        return num1-num2;
+    }
+</script>
+
 <!-- table -->
-<table id="zonesPrint" class="table sorted table-striped table-top table-td-top" data-cookie-id-table="dhcp_leases">
+<table id="dhcp_leases" class="table sorted table-striped table-top table-td-top" data-cookie-id-table="dhcp_leases">
 
     <!-- Headers -->
     <thead>
     <tr>
-        <?php foreach ($table_headers as $hn) { ?>
-            <th><?php print _($hn); ?></th>
-        <?php } ?>
+        <th></th>
+        <th data-field="subdesc" data-sortable="true">Sub desc</th>
+        <th data-field="Address" data-sortable="true" data-sorter="ipSorter">Address</th>
+        <th data-field="MAC" data-sortable="true">MAC</th>
+        <th data-field="Client_id" data-sortable="true">Client ID</th>
+        <th data-field="Expires" data-sortable="true">Expires</th>
+        <th data-field="State" data-sortable="true">State</th>
+        <th data-field="Hostname" data-sortable="true">Hostname (hn Ipam)</th>
+        <th data-field="Description" data-sortable="true">Description</th>
+        <th></th>
     </tr>
     </thead>
 
@@ -137,7 +152,7 @@ function print_leases($lease, $AllIP, $reservation, $isManagement)
     $headCount = count($table_headers);
 
     // v4
-    $html[] = "<td class='th' colspan='" . $headCount . "'>" . _("IPv4 leases") . "</td>";
+    //$html[] = "<td class='th' colspan='" . $headCount . "'>" . _("IPv4 leases") . "</td>";
     $html[] = "</tr>";
 
     // IPv4 not configured
@@ -162,27 +177,27 @@ function print_leases($lease, $AllIP, $reservation, $isManagement)
         }
     }
 
-
+// TODO: переписать чтобы для IPv6 выводилось в отдельной таблице
     // v6
-    $html[] = "<tr>";
-    $html[] = "<td class='th' colspan='" . $headCount . "'>" . _("IPv6 leases") . "</td>";
-    $html[] = "</tr>";
-
-    // IPv4 not configured
-    if ($leases6 === false) {
-        $html[] = "<tr>";
-        $html[] = " <td colspan='" . $headCount . "'>" . $Result->show("info", _("IPv6 not configured on DHCP server"), false, false, true) . "</td>";
-        $html[] = "</tr>";
-    } // no subnets found
-    elseif (sizeof($leases6) == 0) {
-        $html[] = "<tr>";
-        $html[] = " <td colspan='" . $headCount . "'>" . $Result->show("info", _("No IPv6 leases"), false, false, true) . "</td>";
-        $html[] = "</tr>";
-    } else {
-        foreach ($leases6 as $s) {
-            $html = array_merge($html, print_leases($s, $AllIP));
-        }
-    }
+//    $html[] = "<tr>";
+//    $html[] = "<td class='th' colspan='" . $headCount . "'>" . _("IPv6 leases") . "</td>";
+//    $html[] = "</tr>";
+//
+//    // IPv4 not configured
+//    if ($leases6 === false) {
+//        $html[] = "<tr>";
+//        $html[] = " <td colspan='" . $headCount . "'>" . $Result->show("info", _("IPv6 not configured on DHCP server"), false, false, true) . "</td>";
+//        $html[] = "</tr>";
+//    } // no subnets found
+//    elseif (sizeof($leases6) == 0) {
+//        $html[] = "<tr>";
+//        $html[] = " <td colspan='" . $headCount . "'>" . $Result->show("info", _("No IPv6 leases"), false, false, true) . "</td>";
+//        $html[] = "</tr>";
+//    } else {
+//        foreach ($leases6 as $s) {
+//            $html = array_merge($html, print_leases($s, $AllIP));
+//        }
+//    }
 
     # print table
     print implode("\n", $html);
