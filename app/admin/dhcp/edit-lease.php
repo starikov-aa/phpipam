@@ -34,6 +34,9 @@ $leaseInfo = $dhcp->read_leases()[$_POST['ip_addr']];
 $reservationInfo = $dhcp->read_reservations("IPv4")[$_POST['ip_addr']];
 
 //
+$ip_subnet_info = $Subnets->find_subnet_by_ip($_POST['ip_addr']);
+
+//
 $ipToDec = $Subnets->transform_address($_POST['ip_addr'], 'decimal');
 $ipamIpInfo = (array)$Addresses->fetch_address('ip_addr', $ipToDec);
 
@@ -126,7 +129,7 @@ $_mac = isset($leaseInfo['hw-address']) ? $leaseInfo['hw-address'] : $reservatio
                 <td>
                     <select name="subnet_id" class="form-control input-sm input-w-auto">
                         <?php
-                        $cur_sub_id = $reservationInfo ? $reservationInfo["subnet-id"] : $ipamIpInfo['subnetId'];
+                        $cur_sub_id = $reservationInfo ? $reservationInfo["subnet-id"] : $ip_subnet_info->id;
                         foreach ($subnets4 as $s) {
                             $on = ($cur_sub_id == $s['id']) ? 'selected' : '';
                             print '<option value="' . $s['id'] . '" ' . $on . '>' . $s['subnet'] . '</option>';
