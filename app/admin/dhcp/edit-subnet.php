@@ -68,21 +68,6 @@ foreach ($ipamSubnets as $jis) {
         $('#pools').val(pool[0] + '-' + pool[1]);
     })
 
-    function ip4ToInt(ip){
-        return ip.split('.').reduce((int, oct) => (int << 8) + parseInt(oct, 10), 0) >>> 0;
-    }
-
-    function intToIp4(int){
-        return [(int >>> 24) & 0xFF, (int >>> 16) & 0xFF,
-            (int >>> 8) & 0xFF, int & 0xFF].join('.');
-    }
-
-    function calculateCidrRange(cidr){
-        const [range, bits = 32] = cidr.split('/');
-        const mask = ~(2 ** (32 - bits) - 1);
-        return [intToIp4(ip4ToInt(range) & mask), intToIp4(ip4ToInt(range) | ~mask)];
-    }
-
 </script>
 
 <!-- header -->

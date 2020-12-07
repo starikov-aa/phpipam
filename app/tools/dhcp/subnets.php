@@ -13,15 +13,6 @@ $User->check_module_permissions("dhcp", User::ACCESS_R, true, false);
 $subnets4 = $DHCP->read_subnets("IPv4");
 $subnets6 = $DHCP->read_subnets("IPv6");
 
-$table_headers = [
-    'ID',
-    'Desc',
-    'Subnet',
-    'Pools',
-    'Options',
-    ''
-];
-
 function secondsToTime($seconds) {
     $dtF = new DateTime('@0');
     $dtT = new DateTime("@$seconds");
@@ -120,11 +111,14 @@ function print_subnets($s, $isManagement)
 
     <!-- Headers -->
     <thead>
-    <tr>
-        <?php foreach ($table_headers as $hn) { ?>
-            <th><?php print _($hn); ?></th>
-        <?php } ?>
-    </tr>
+        <tr>
+            <th data-field="id" data-sortable="true">ID</th>
+            <th data-field="desc" data-sortable="false">Desc</th>
+            <th data-field="subnet" data-sortable="true" data-sorter="compareSubnet">Subnet</th>
+            <th data-field="pools" data-sortable="false">Pools</th>
+            <th data-field="options" data-sortable="false">Options</th>
+            <th></th>
+        </tr>
     </thead>
 
     <!-- subnets -->
@@ -132,10 +126,7 @@ function print_subnets($s, $isManagement)
 
     $headCount = count($table_headers);
 
-    // v4
-    $html[] = "<tr>";
-    $html[] = "<td class='th' colspan='" . $headCount . "'>" . _("IPv4 subnets") . "</td>";
-    $html[] = "</tr>";
+    $html = [];
 
     // IPv4 not configured
     if ($subnets4 === false) {
@@ -153,27 +144,27 @@ function print_subnets($s, $isManagement)
         }
     }
 
-
-    // v6
-    $html[] = "<tr>";
-    $html[] = "<td class='th' colspan='" . $headCount . "'>" . _("IPv6 subnets") . "</td>";
-    $html[] = "</tr>";
-
-    // IPv6 not configured
-    if ($subnets6 === false) {
-        $html[] = "<tr>";
-        $html[] = " <td colspan='" . $headCount . "'>" . $Result->show("info", _("IPv6 not configured on DHCP server"), false, false, true) . "</td>";
-        $html[] = "</tr>";
-    } // no subnets found
-    elseif (sizeof($subnets6) == 0) {
-        $html[] = "<tr>";
-        $html[] = " <td colspan='" . $headCount . "'>" . $Result->show("info", _("No IPv6 subnets"), false, false, true) . "</td>";
-        $html[] = "</tr>";
-    } else {
-        foreach ($subnets6 as $s) {
-            $html = array_merge($html, print_subnets($s, $IsManagement));
-        }
-    }
+    // TODO: переписать чтобы для IPv6 выводилось в отдельной таблице
+//    // v6
+//    $html[] = "<tr>";
+//    $html[] = "<td class='th' colspan='" . $headCount . "'>" . _("IPv6 subnets") . "</td>";
+//    $html[] = "</tr>";
+//
+//    // IPv6 not configured
+//    if ($subnets6 === false) {
+//        $html[] = "<tr>";
+//        $html[] = " <td colspan='" . $headCount . "'>" . $Result->show("info", _("IPv6 not configured on DHCP server"), false, false, true) . "</td>";
+//        $html[] = "</tr>";
+//    } // no subnets found
+//    elseif (sizeof($subnets6) == 0) {
+//        $html[] = "<tr>";
+//        $html[] = " <td colspan='" . $headCount . "'>" . $Result->show("info", _("No IPv6 subnets"), false, false, true) . "</td>";
+//        $html[] = "</tr>";
+//    } else {
+//        foreach ($subnets6 as $s) {
+//            $html = array_merge($html, print_subnets($s, $IsManagement));
+//        }
+//    }
 
     # print table
     print implode("\n", $html);

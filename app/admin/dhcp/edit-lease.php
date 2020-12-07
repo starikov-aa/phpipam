@@ -125,13 +125,16 @@ $_mac = isset($leaseInfo['hw-address']) ? $leaseInfo['hw-address'] : $reservatio
                 <td style="white-space: nowrap;"><?php print _('Subnet'); ?></td>
                 <td>
                     <select name="subnet_id" class="form-control input-sm input-w-auto">
-                        <?php foreach ($subnets4 as $s) {
-                            $on = ($reservationInfo['subnet-id'] == $s['id']) ? 'selected' : '';
+                        <?php
+                        $cur_sub_id = $reservationInfo ? $reservationInfo["subnet-id"] : $ipamIpInfo['subnetId'];
+                        foreach ($subnets4 as $s) {
+                            $on = ($cur_sub_id == $s['id']) ? 'selected' : '';
                             print '<option value="' . $s['id'] . '" ' . $on . '>' . $s['subnet'] . '</option>';
                         } ?>
                     </select>
                 </td>
             </tr>
+
             <!-- Hostname -->
             <tr class="staticonly">
                 <td style="white-space: nowrap;"><?php print _('Hostname'); ?></td>
