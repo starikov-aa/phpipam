@@ -104,7 +104,6 @@ $_mac = isset($leaseInfo['hw-address']) ? $leaseInfo['hw-address'] : $reservatio
                     <input type="text" id="ip_addr" name="ip_addr"
                            class="form-control input-sm readonly-inp-without-static" value="<?php print $_ip; ?>">
                     <input type="hidden" name="action" value="<?php print $_POST['action']; ?>">
-                    <input type="hidden" name="addressId" value="<?php print $ipamIpInfo['id']; ?>">
                     <input type="hidden" name="csrf_cookie" value="<?php print $csrf; ?>">
                 </td>
             </tr>

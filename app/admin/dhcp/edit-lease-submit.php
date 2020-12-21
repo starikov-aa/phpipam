@@ -22,7 +22,8 @@ $_POST = $Admin->strip_input_tags($_POST);
 $dhcp = new DHCP('kea');
 $reservation = $dhcp->read_reservations("IPv4");
 $hwaddrs = array_search($_POST['hwaddr'], array_column($reservation, 'hw-address'));
-$ipObj = $Addresses->fetch_address(null, $_POST['addressId']);
+$ipToDec = $Subnets->transform_address($_POST['ip_addr'], 'decimal');
+$ipObj = $Addresses->fetch_address('ip_addr', $ipToDec);
 
 if ($ipObj) {
     $address = (array)$ipObj;
@@ -31,7 +32,7 @@ if ($ipObj) {
 $address['hostname'] = $_POST['hostname'];
 $address['description'] = $_POST['description'];
 $address['state'] = 4;
-$address['ip_addr'] = $Subnets->transform_address($_POST['ip_addr'], 'decimal');
+$address['ip_addr'] = $ipToDec;
 $address['mac'] = $User->reformat_mac_address($_POST['hwaddr'], 1);
 
 // формируем массив с доп оциями для резервирования.

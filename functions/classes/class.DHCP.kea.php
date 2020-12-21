@@ -171,6 +171,8 @@ class DHCP_kea extends Common_functions
      */
     private $ApiReadServer = "";
 
+    private $LogFile = '';
+
     /**
      * __construct function.
      *
@@ -180,6 +182,9 @@ class DHCP_kea extends Common_functions
      */
     public function __construct($kea_settings = array())
     {
+
+        $this->LogFile = $_SERVER['DOCUMENT_ROOT'] . "/kea_dhcp.log";
+
         // save settings
         if (is_array($kea_settings)) {
             $this->kea_settings = $kea_settings;
@@ -636,7 +641,16 @@ class DHCP_kea extends Common_functions
 
     public function gen_error_msg($array)
     {
-        return "<br>Status: " . $array['status'] . "<br>Text: " . $array['msg'];
+        $result = [];
+        $array = isset($array['server']) ? [$array] : $array;
+        foreach ($array as $item) {
+            $result[] = "<br> Server: " . $item['server'] .
+                "<br> Status: " . $item['status'] .
+                "<br> Text: " . $item['msg'];
+        }
+        $text = join($result, '');
+        $this->_log_($text);
+        return $text;
     }
 
     /**
@@ -770,7 +784,6 @@ class DHCP_kea extends Common_functions
                     $cw = $this->api_request('config-write', $service, $s['api_addr']);
                     if ($cw['status'] != 0) {
                         throw new exception ("Write new config to file fail" . $this->gen_error_msg($cw));
-                        $this->write_config();
                     }
                 }
             }
@@ -780,6 +793,7 @@ class DHCP_kea extends Common_functions
     public function write_reservation($ip, $mac, $subnet_id = null, $additional_settings = [], $backend = 'config', $type = 'IPv4')
     {
         if ($backend == 'config') {
+            //throw new exception ($ip .' - '. $mac .' - '. $subnet_id .' - '. $type);
             $this->write_reservation_to_config($ip, $mac, $subnet_id, $additional_settings, $type);
         }
     }
@@ -796,22 +810,48 @@ class DHCP_kea extends Common_functions
         $ipv = $type == 'IPv4' ? '4' : '6';
         $service = $this->get_service_name('dhcp', $type);
         $result = $this->config;
+
         // ищем номер подсети в массиве сетей
         $subnet_id_found = array_search($subnet_id, array_column($result[$service]['subnet' . $ipv], 'id'));
+
+        // нашли подсеть
         if ($subnet_id_found !== false) {
-            $subnet = $result[$service]['subnet' . $ipv][$subnet_id_found];
+            $subnet = &$result[$service]['subnet' . $ipv][$subnet_id_found];
+
             // получаем список резервирований в подсети
             $r_list = $subnet['reservations'];
+
             // ищем IP среди зарезервированых
-            $r_num = array_search($ip, array_column($r_list, 'ip-address'));
-            if ($r_list[$r_num]['ip-address'] == $ip && $r_list[$r_num]['hw-address'] == $mac) {
+            $ip_num = array_search($ip, array_column($r_list, 'ip-address'));
+
+            // ищем MAC среди зарезервированых
+            $mac_num = array_search($mac, array_column($r_list, 'hw-address'));
+
+            // ip & mac совпадают, значит редактируем какие то опции
+            if ($r_list[$ip_num]['ip-address'] == $ip && $r_list[$ip_num]['hw-address'] == $mac) {
                 // обновляем какие то доп. опции
-                $tmp = $result[$service]['subnet' . $ipv][$subnet_id_found]['reservations'][$r_num];
-                $result[$service]['subnet' . $ipv][$subnet_id_found]['reservations'][$r_num] = array_merge($tmp, $additional_settings);
-                //print_r($result[$service]['subnet' . $ipv][$subnet_id_found]['reservations'][$r_num]);
-            } elseif ($r_num === false && !in_array($mac, array_column($r_list, 'hw-address'))) {
+                $tmp = $ip_num[$ip_num];
+                $subnet['reservations'][$ip_num] = array_merge($tmp, $additional_settings);
+                print_r($r_list[$ip_num]);
+
+            } // найдено резервирование с заданыи IP, но мак другой
+            elseif ($ip_num !== false && $mac_num === false) {
+                // тогда у записи обновляем MAC
+                $subnet['reservations'][$ip_num]['hw-address'] = $mac;
+                // удаляем старые лизы чтобы небыло путаницы
+                $this->delete_lease($ip, $type);
+
+            } // найдено резервирование с заданыи Mac, но IP другой
+            elseif ($mac_num !== false && $ip_num === false) {
+                // тогда у записи обновляем IP
+                $subnet['reservations'][$mac_num]['ip-address'] = $ip;
+                // удаляем старые лизы чтобы небыло путаницы
+                $this->delete_lease($ip, $type);
+
+            } // мак и IP не найдены, созадем новое резервирование
+            elseif ($ip_num === false && $mac_num === false) {
                 if ($this->isIpInRange($ip, $subnet['subnet'])) {
-                    $result[$service]['subnet' . $ipv][$subnet_id_found]['reservations'][] = [
+                    $subnet['reservations'][] = [
                         'ip-address' => $ip,
                         'hw-address' => $mac
                     ];
@@ -819,10 +859,12 @@ class DHCP_kea extends Common_functions
                     throw new exception ("Ip " . $ip . " is not on subnet " . $subnet_id);
                 }
             }
+//            throw new exception ('x');
             $this->write_config($service, $result);
-            //throw new exception ("x");
+
         }
     }
+
 
     /**
      * Gets the leases of the specified type
@@ -880,11 +922,21 @@ class DHCP_kea extends Common_functions
     {
         $ipv = $type == 'IPv4' ? '4' : '6';
         $raw = $this->api_request('lease' . $ipv . '-del', $this->get_service_name('dhcp', $type), ['ip-address' => $ip], '', true);
+
         foreach ($raw as $item) {
             if ($item['status'] !== 0) {
-                throw new exception ("can't delete leases " . $ip . $this->gen_error_msg($raw));
+                throw new exception ("can't delete leases " . $ip . $this->gen_error_msg($item));
             }
         }
+
+        $raw2 = $this->api_request('leases-reclaim', $this->get_service_name('dhcp', $type), ['remove' => false], '', true);
+
+        foreach ($raw2 as $item2) {
+            if ($item2['status'] !== 0) {
+                throw new exception ("can't reclaim leases " . $ip . $this->gen_error_msg($item2));
+            }
+        }
+
     }
 
     /**
@@ -983,5 +1035,17 @@ class DHCP_kea extends Common_functions
     public function add_lease($ip, $hw_addr, $subnet_id)
     {
 
+    }
+
+    function _msg_($error_text, $gen_except = false, $write_log = true)
+    {
+
+    }
+
+    function _log_($text)
+    {
+        $f = fopen($this->LogFile, 'a+');
+        fwrite($f, date("Y-m-d H:i:s") . " " . __METHOD__ . " " . $text . "\r\n");
+        fclose($f);
     }
 }

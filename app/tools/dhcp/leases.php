@@ -161,7 +161,7 @@ function print_leases($lease, $AllIP, $reservation, $isManagement)
         $html[] = " <td colspan='" . $headCount . "'>" . $Result->show("info", _("IPv4 not configured on DHCP server"), false, false, true) . "</td>";
         $html[] = "</tr>";
     } // no subnets found
-    elseif (sizeof($leases4) == 0) {
+    elseif (!count($leases4) && !count($reservation4)) {
         $html[] = "<tr>";
         $html[] = " <td colspan='" . $headCount . "'>" . $Result->show("info", _("No IPv4 leases"), false, false, true) . "</td>";
         $html[] = "</tr>";
@@ -172,9 +172,10 @@ function print_leases($lease, $AllIP, $reservation, $isManagement)
                 unset($reservation4[$lease['ip-address']]);
             }
         }
-        foreach ($reservation4 as $r) {
-            $html = array_merge($html, print_leases($r, $AllIP, $reservation4, $isManagement));
-        }
+    }
+
+    foreach ($reservation4 as $r) {
+        $html = array_merge($html, print_leases($r, $AllIP, $reservation4, $isManagement));
     }
 
 // TODO: переписать чтобы для IPv6 выводилось в отдельной таблице
