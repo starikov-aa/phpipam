@@ -191,9 +191,9 @@ class DHCP_kea extends Common_functions
         if (isset($this->kea_settings['file'])) {
             $this->kea_config_file = $this->kea_settings['file'];
         }
-        $rs = $this->get_server('primary');
+        $rs = $this->get_server('all', $addr_only = true);
         if ($rs) {
-            $this->ApiReadServer = $rs[0]['api_addr'];
+            $this->ApiReadServer = $rs;
         }
 
         // parse config file on startup
@@ -653,16 +653,20 @@ class DHCP_kea extends Common_functions
     }
 
     /**
+     * Отправляет запросы к АПИ
+     *
      * @param $command
      * @param string $service
      * @param string $arguments
      * @param string $server
-     * @return bool|mixed
+     * @return bool|string|array
      * @throws exception
      */
-    public function api_request($command, $service = '', $arguments = null, $server = '')
+    public function api_request($command, $service = '', $arguments = null, $server = '', $exec_all_server = false)
     {
         $result = false;
+        $srv = [];
+
         $cmd['command'] = $command;
 
         if (empty($command)) {
@@ -680,34 +684,46 @@ class DHCP_kea extends Common_functions
         $cmd = json_encode($cmd, JSON_UNESCAPED_SLASHES);
 
         if (empty($server)) {
-            $server = $this->ApiReadServer;
-        }
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'http://' . $server);
-        curl_setopt($ch, CURLOPT_HEADER, 0);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $cmd);
-        $raw = json_decode(curl_exec($ch), true);
-        curl_close($ch);
-
-        if (isset($raw[0]['result'])) {
-            $result = [
-                'data' => $raw[0]['arguments'],
-                'msg' => $raw[0]['text'],
-                'status' => $raw[0]['result']
-            ];
+            $srv = $this->ApiReadServer;
+        } elseif (!empty($server) && !is_array($server)) {
+            $srv[] = $server;
+        } elseif (is_array($server)) {
+            $srv = $server;
         } else {
-            throw new exception ("api_request: Error execute command: " . $cmd . "<pre>" . print_r($raw . " / server: " . $server, true));
+            throw new exception ('api_request: Servers parse error. Current value: ' . print_r($server, true));
         }
 
-        //print_r($this->kea_settings). "\n\n\n";
-        //echo print_r($result);
+        foreach ($srv as $s) {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, 'http://' . $s);
+            curl_setopt($ch, CURLOPT_HEADER, 0);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $cmd);
+            $raw = json_decode(curl_exec($ch), true);
+            curl_close($ch);
 
-        return $result;
+            if (isset($raw[0]['result'])) {
+                $result[] = [
+                    'server' => $s,
+                    'data' => $raw[0]['arguments'],
+                    'msg' => $raw[0]['text'],
+                    'status' => $raw[0]['result']
+                ];
+            } else {
+                throw new exception ("api_request: Error execute command: " . $cmd . "<pre>" . print_r($raw . " / server: " . $s, true));
+            }
+
+            if (!$exec_all_server) {
+                break;
+            }
+
+            //print_r($this->kea_settings). "\n\n\n";
+            //print_r($result);
+        }
+        return $exec_all_server ? $result : $result[0];
     }
 
     /**
@@ -863,9 +879,11 @@ class DHCP_kea extends Common_functions
     public function delete_lease($ip, $type = 'IPv4')
     {
         $ipv = $type == 'IPv4' ? '4' : '6';
-        $raw = $this->api_request('lease' . $ipv . '-del', $this->get_service_name('dhcp', $type), ['ip-address' => $ip]);
-        if ($raw['status'] !== 0) {
-            throw new exception ("can't delete leases " . $ip . $this->gen_error_msg($raw));
+        $raw = $this->api_request('lease' . $ipv . '-del', $this->get_service_name('dhcp', $type), ['ip-address' => $ip], '', true);
+        foreach ($raw as $item) {
+            if ($item['status'] !== 0) {
+                throw new exception ("can't delete leases " . $ip . $this->gen_error_msg($raw));
+            }
         }
     }
 
@@ -892,18 +910,22 @@ class DHCP_kea extends Common_functions
         $this->write_config($service, $result);
     }
 
-    public function get_server($role = 'all')
+    public function get_server($role = 'all', $addr_only = false)
     {
         $servers = $this->kea_settings['servers'];
         $result = false;
         foreach ($servers as $srv) {
             if ($srv['role'] == $role || $role == 'all') {
-                $result[] = [
-                    "addr" => $srv['addr'],
-                    "api_addr" => $srv['addr'] . ":" . $srv['port'],
-                    "role" => $srv['role'],
-                    "name" => $srv['name']
-                ];
+                if (!$addr_only) {
+                    $result[] = [
+                        "addr" => $srv['addr'],
+                        "api_addr" => $srv['addr'] . ":" . $srv['port'],
+                        "role" => $srv['role'],
+                        "name" => $srv['name']
+                    ];
+                } else {
+                    $result[] = $srv['addr'] . ":" . $srv['port'];
+                }
             }
         }
 
