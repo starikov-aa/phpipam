@@ -832,21 +832,19 @@ class DHCP_kea extends Common_functions
                 // обновляем какие то доп. опции
                 $tmp = $ip_num[$ip_num];
                 $subnet['reservations'][$ip_num] = array_merge($tmp, $additional_settings);
-                print_r($r_list[$ip_num]);
+                $this->_log_('write_reserv: MAC & ip found');
 
             } // найдено резервирование с заданыи IP, но мак другой
             elseif ($ip_num !== false && $mac_num === false) {
                 // тогда у записи обновляем MAC
                 $subnet['reservations'][$ip_num]['hw-address'] = $mac;
-                // удаляем старые лизы чтобы небыло путаницы
-                $this->delete_lease($ip, $type);
+                $this->_log_('write_reserv: MAC found, ip not found');
 
             } // найдено резервирование с заданыи Mac, но IP другой
             elseif ($mac_num !== false && $ip_num === false) {
                 // тогда у записи обновляем IP
                 $subnet['reservations'][$mac_num]['ip-address'] = $ip;
-                // удаляем старые лизы чтобы небыло путаницы
-                $this->delete_lease($ip, $type);
+                $this->_log_('write_reserv: IP found, MAC not found');
 
             } // мак и IP не найдены, созадем новое резервирование
             elseif ($ip_num === false && $mac_num === false) {
@@ -855,11 +853,19 @@ class DHCP_kea extends Common_functions
                         'ip-address' => $ip,
                         'hw-address' => $mac
                     ];
+                    $this->_log_('write_reserv: MAC & ip not found');
                 } else {
                     throw new exception ("Ip " . $ip . " is not on subnet " . $subnet_id);
                 }
             }
-//            throw new exception ('x');
+
+            // удаляем старые лизы чтобы небыло путаницы
+            try {
+                $this->delete_lease($ip, $type);
+            } catch (Exception $e) {
+                $this->_log_('delete_lease: ' . $e->getMessage());
+            }
+
             $this->write_config($service, $result);
 
         }
@@ -1045,7 +1051,7 @@ class DHCP_kea extends Common_functions
     function _log_($text)
     {
         $f = fopen($this->LogFile, 'a+');
-        fwrite($f, date("Y-m-d H:i:s") . " " . __METHOD__ . " " . $text . "\r\n");
+        fwrite($f, date("Y-m-d H:i:s") . " file: " . __FILE__ . " line: " . __LINE__ . " func: " . __METHOD__ . " msg: " . $text . "\r\n");
         fclose($f);
     }
 }
