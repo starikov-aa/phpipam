@@ -830,7 +830,7 @@ class DHCP_kea extends Common_functions
             // ip & mac совпадают, значит редактируем какие то опции
             if ($r_list[$ip_num]['ip-address'] == $ip && $r_list[$ip_num]['hw-address'] == $mac) {
                 // обновляем какие то доп. опции
-                $tmp = $ip_num[$ip_num];
+                $tmp = $r_list[$ip_num];
                 $subnet['reservations'][$ip_num] = array_merge($tmp, $additional_settings);
                 $this->_log_('write_reserv: MAC & ip found');
 
