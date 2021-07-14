@@ -27,7 +27,9 @@ foreach ($Subnets->fetch_all_subnets() as $sub) {
     $ips = $Addresses->fetch_subnet_addresses($sub->id, null, null, ['ip_addr', 'description', 'hostname']);
     foreach ($ips as $ip) {
         $AllIP[$ip->ip] = (array)$ip;
-        $AllIP[$ip->ip]['sub_desc'] = $sub->description;
+        $AllIP[$ip->ip]['subnet']['description'] = $sub->description;
+        $AllIP[$ip->ip]['subnet']['id'] = $sub->id;
+        $AllIP[$ip->ip]['subnet']['sectionId'] = $sub->sectionId;
     }
 }
 
@@ -52,9 +54,9 @@ function print_leases($lease, $AllIP, $reservation, $isManagement)
     global $User, $Subnets;
 
     // выводим описание подсети
-    $subnetDesc = $AllIP[$lease['ip-address']]['sub_desc'];
+    $subnetDesc = $AllIP[$lease['ip-address']]['subnet'];
     if (empty($subnetDesc)){
-        $subnetDesc = $Subnets->find_subnet_by_ip($lease['ip-address'])->description;
+        $subnetDesc = (array) $Subnets->find_subnet_by_ip($lease['ip-address']);
     }
 
     $isReserved = !is_array($reservation[$lease['ip-address']]) ? 'D' : '';
@@ -79,7 +81,8 @@ function print_leases($lease, $AllIP, $reservation, $isManagement)
 
     $html[] = "<tr>";
     $html[] = " <td>" . $isReserved . "</td>";
-    $html[] = " <td>" . $subnetDesc . "</td>";
+    $html[] = " <td><a href='index.php?page=subnets&section=" . $subnetDesc['sectionId'] .
+        "&subnetId=" . $subnetDesc['id'] . "'>" . $subnetDesc['description'] . "</a></td>";
     $html[] = " <td>" . $lease['ip-address'] . "</td>";
     $html[] = " <td>" . $User->reformat_mac_address($lease['hw-address'], 1) . "</td>";
     $html[] = " <td>" . $lease['client_id'] . "</td>";
