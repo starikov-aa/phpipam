@@ -9,3 +9,4 @@ api/_lock.txt
 app/dashboard/widgets/custom/
 .idea
 .vscode
+kea_dhcp.log
