@@ -31,7 +31,7 @@ if ($ipObj) {
 
 $address['hostname'] = $_POST['hostname'];
 $address['description'] = $_POST['description'];
-$address['state'] = 4;
+$address['state'] = 5;
 $address['ip_addr'] = $ipToDec;
 $address['mac'] = $User->reformat_mac_address($_POST['hwaddr'], 1);
 
