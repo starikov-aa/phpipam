@@ -776,14 +776,22 @@ class DHCP_kea extends Common_functions
                     }
                 }
 
-                $cs = $this->api_request('config-set', $service, $arguments, $s['api_addr']);
+                $cs = $this->api_request('config-test', $service, $arguments, $s['api_addr']);
 
                 if ($cs['status'] != 0) {
-                    throw new exception ("Set new config fail" . $this->gen_error_msg($cs));
+                    throw new exception ("New config test error " . $this->gen_error_msg($cs));
                 } else {
-                    $cw = $this->api_request('config-write', $service, $s['api_addr']);
-                    if ($cw['status'] != 0) {
-                        throw new exception ("Write new config to file fail" . $this->gen_error_msg($cw));
+                    $cs = $this->api_request('config-set', $service, $arguments, $s['api_addr']);
+
+                    if ($cs['status'] != 0) {
+                        $this->api_request('config-reload', $service, $arguments, $s['api_addr']);
+                        throw new exception ("New config set error " . $this->gen_error_msg($cs));
+                    } else {
+                        $cs = $this->api_request('config-write', $service, $s['api_addr']);
+
+                        if ($cs['status'] != 0) {
+                            throw new exception ("New config write to file fail" . $this->gen_error_msg($cs));
+                        }
                     }
                 }
             }
