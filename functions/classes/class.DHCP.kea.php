@@ -673,6 +673,7 @@ class DHCP_kea extends Common_functions
      * @param string $service
      * @param string $arguments
      * @param string $server
+     * @param bool $exec_all_server
      * @return bool|string|array
      * @throws exception
      */
@@ -727,7 +728,7 @@ class DHCP_kea extends Common_functions
                     'status' => $raw[0]['result']
                 ];
             } else {
-                throw new exception ("api_request: Error execute command: " . $cmd . "<pre>" . print_r($raw . " / server: " . $s, true));
+                throw new exception ("api_request: Error execute command: " . $cmd . "<br>server: " . $s . "<br><pre>" . print_r($raw, true));
             }
 
             if (!$exec_all_server) {
