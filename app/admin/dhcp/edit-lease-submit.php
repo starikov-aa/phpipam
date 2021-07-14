@@ -33,7 +33,15 @@ $address['hostname'] = $_POST['hostname'];
 $address['description'] = $_POST['description'];
 $address['state'] = 5;
 $address['ip_addr'] = $ipToDec;
-$address['mac'] = $User->reformat_mac_address($_POST['hwaddr'], 1);
+
+if(strlen(@$_POST['hwaddr'])>0) {
+    if($User->validate_mac ($_POST['hwaddr'])===false) {
+        $Result->show("danger", _('Invalid MAC address'), true);
+    } else {
+        $address['mac'] = $User->reformat_mac_address($_POST['hwaddr'], 1);
+    }
+}
+
 
 // формируем массив с доп оциями для резервирования.
 $ap1 = ['boot-file-name' => $_POST['boot-file-name'],
