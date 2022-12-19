@@ -8,15 +8,6 @@
 
 class Tools_controller extends Common_api_functions {
 
-
-	/**
-	 * _params provided
-	 *
-	 * @var mixed
-	 * @access public
-	 */
-	public $_params;
-
 	/**
 	 * subcontrollers
 	 *
@@ -41,45 +32,6 @@ class Tools_controller extends Common_api_functions {
 	 */
 	protected $identifiers;
 
-	/**
-	 * Database object
-	 *
-	 * @var mixed
-	 * @access protected
-	 */
-	protected $Database;
-
-	/**
-	 * Response
-	 *
-	 * @var mixed
-	 * @access protected
-	 */
-	protected $Response;
-
-	/**
-	 * Master Tools object
-	 *
-	 * @var mixed
-	 * @access protected
-	 */
-	protected $Tools;
-
-	/**
-	 * Main Admin class
-	 *
-	 * @var mixed
-	 * @access protected
-	 */
-	protected $Admin;
-
-	/**
-	 * Main Subnets class
-	 *
-	 * @var mixed
-	 * @access protected
-	 */
-	protected $Subnets;
 
 	/**
 	 * __construct function
@@ -259,7 +211,7 @@ class Tools_controller extends Common_api_functions {
 		if (!isset($this->_params->id2)) {
 			$result = $this->Tools->fetch_all_objects ($this->_params->id,  $this->sort_key);
 			// result
-			if($result===false)							{ $this->Response->throw_exception(200, 'No objects found'); }
+			if($result===false)							{ $this->Response->throw_exception(404, 'No objects found'); }
 			else										{ return array("code"=>200, "data"=>$this->prepare_result ($result, "tools/".$this->_params->id, true, false)); }
 		}
 		# by parameter
@@ -282,7 +234,7 @@ class Tools_controller extends Common_api_functions {
                     		$result[$k]->gatewayId = $gateway->id;
                 		}
                     	//nameservers
-                		$ns = $this->read_subnet_nameserver ($r);
+                		$ns = $this->read_subnet_nameserver ($r->nameserverId);
                         if ($ns!==false) {
                             $result[$k]->nameservers = $ns;
                         }
@@ -355,7 +307,7 @@ class Tools_controller extends Common_api_functions {
 				$result = $this->Tools->fetch_multiple_objects ("ipaddresses", $field, $this->_params->id2, $this->sort_key, true);
 			}
 			// result
-			if($result===false)							{ $this->Response->throw_exception(200, 'No objects found'); }
+			if($result===false)							{ $this->Response->throw_exception(404, 'No objects found'); }
 			else										{ return array("code"=>200, "data"=>$this->prepare_result ($result, "tools/".$this->_params->id, true, true)); }
 
 		}
@@ -366,7 +318,7 @@ class Tools_controller extends Common_api_functions {
 
 			$result = $this->Tools->fetch_object ($this->_params->id, $this->sort_key, $this->_params->id2);
 			// result
-			if($result===false)							{ $this->Response->throw_exception(200, 'No objects found'); }
+			if($result===false)							{ $this->Response->throw_exception(404, 'No objects found'); }
 			else										{ return array("code"=>200, "data"=>$this->prepare_result ($result, "tools/".$this->_params->id, true, false)); }
 		}
 	}
@@ -391,7 +343,7 @@ class Tools_controller extends Common_api_functions {
 		$table_name = $this->rewrite_tool_input_params ();
 
 		# Get coordinates if address is set
-		if(key_exists('address', $this->_params) && in_array('lat', $this->valid_keys))
+		if(property_exists($this->_params, 'address') && in_array('lat', $this->valid_keys))
 			$this->format_location ();
 
 		# check for valid keys
@@ -416,21 +368,6 @@ class Tools_controller extends Common_api_functions {
 
 
 
-
-	/**
-	 * HEAD, no response
-	 *
-	 * @access public
-	 * @return void
-	 */
-	public function HEAD () {
-		return $this->GET ();
-	}
-
-
-
-
-
 	/**
 	 * Updates tools object
 	 *
@@ -442,7 +379,7 @@ class Tools_controller extends Common_api_functions {
 		$table_name = $this->rewrite_tool_input_params();
 
 		# Get coordinates if address is changed
-		if(key_exists('address', $this->_params) && in_array('lat', $this->valid_keys))
+		if(property_exists($this->_params, 'address') && in_array('lat', $this->valid_keys))
 			$this->format_location ();
 
 		# validate and prepare keys
@@ -636,31 +573,10 @@ class Tools_controller extends Common_api_functions {
 	}
 
 	/**
-	 * Returns id of subnet gateay
-	 *
-	 * @access private
-	 * @params mixed $subnetId
-	 * @return void
-	 */
-	private function read_subnet_gateway ($subnetId) {
-    	return $this->Subnets->find_gateway ($subnetId);
-	}
-
-	/**
-	 * Returns nameserver details
-	 *
-	 * @param result $obj
-	 * @return void
-	 */
-	private function read_subnet_nameserver ($result) {
-    	return $this->Tools->fetch_object ("nameservers", "id", $result->nameserverId);
-	}
-
-	/**
 	 * Parses NAT objects into array.
 	 *
 	 * @access private
-	 * @param json $obj
+	 * @param string $obj
 	 * @return array
 	 */
 	private function parse_nat_objects ($obj) {
@@ -673,14 +589,15 @@ class Tools_controller extends Common_api_functions {
 	}
 
 	/**
-	 * Get latlng from Google
+	 * Get latlng from Nominatim
 	 *
 	 * @method format_location
-	 * @return [type]          [description]
+	 * @return void
 	 */
 	private function format_location () {
 		if((strlen(@$this->_params->lat)==0 || strlen(@$this->_params->long)==0) && strlen(@$this->_params->address)>0) {
-            $latlng = $this->Tools->get_latlng_from_address ($this->_params->address);
+            $OSM = new OpenStreetMap($this->Database);
+            $latlng = $OSM->get_latlng_from_address ($this->_params->address);
             if($latlng['lat']!=NULL && $latlng['lng']!=NULL) {
                 $this->_params->lat  = $latlng['lat'];
                 $this->_params->long = $latlng['lng'];

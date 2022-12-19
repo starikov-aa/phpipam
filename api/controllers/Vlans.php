@@ -8,23 +8,6 @@
 
 class Vlans_controller extends Common_api_functions {
 
-
-	/**
-	 * _params provided
-	 *
-	 * @var mixed
-	 * @access public
-	 */
-	public $_params;
-
-	/**
-	 * custom_fields
-	 *
-	 * @var mixed
-	 * @access protected
-	 */
-	public $custom_fields;
-
 	/**
 	 * settings
 	 *
@@ -32,38 +15,6 @@ class Vlans_controller extends Common_api_functions {
 	 * @access protected
 	 */
 	protected $settings;
-
-	/**
-	 * Database object
-	 *
-	 * @var mixed
-	 * @access protected
-	 */
-	protected $Database;
-
-	/**
-	 * Master Sections object
-	 *
-	 * @var mixed
-	 * @access protected
-	 */
-	protected $Sections;
-
-	/**
-	 * Master Tools object
-	 *
-	 * @var mixed
-	 * @access protected
-	 */
-	protected $Tools;
-
-	/**
-	 * Master Admin object
-	 *
-	 * @var mixed
-	 * @access protected
-	 */
-	protected $Admin;
 
 
 	/**
@@ -138,7 +89,7 @@ class Vlans_controller extends Common_api_functions {
 		if (!isset($this->_params->id) || $this->_params->id == "all") {
 			$result = $this->Tools->fetch_all_objects ("vlans", 'vlanId');
 			// check result
-			if($result===false)						{ $this->Response->throw_exception(200, 'No vlans configured'); }
+			if($result===false)						{ $this->Response->throw_exception(404, 'No vlans configured'); }
 			else									{ return array("code"=>200, "data"=>$this->prepare_result ($result, null, true, true)); }
 		}
 		// check weather to read belonging subnets
@@ -170,7 +121,7 @@ class Vlans_controller extends Common_api_functions {
 			}
 
 			// check result
-			if($result==NULL)						{ $this->Response->throw_exception(200, "No subnets found"); }
+			if($result==NULL)						{ $this->Response->throw_exception(404, "No subnets found"); }
 			else {
 				$this->custom_fields = $this->Tools->fetch_custom_fields('subnets');
 				return array("code"=>200, "data"=>$this->prepare_result ($result, "subnets", true, true));
@@ -179,36 +130,23 @@ class Vlans_controller extends Common_api_functions {
 		// custom fields
 		elseif (@$this->_params->id=="custom_fields") {
 			// check result
-			if(sizeof($this->custom_fields)==0)		{ $this->Response->throw_exception(200, 'No custom fields defined'); }
+			if(sizeof($this->custom_fields)==0)		{ $this->Response->throw_exception(404, 'No custom fields defined'); }
 			else									{ return array("code"=>200, "data"=>$this->custom_fields); }
 		}
 		// search
 		elseif (@$this->_params->id=="search") {
 			$result = $this->Tools->fetch_multiple_objects ("vlans", "number", $this->_params->id2, "vlanId");
 			// check result
-			if($result==NULL)						{ $this->Response->throw_exception(200, "Vlans not found"); }
+			if($result==NULL)						{ $this->Response->throw_exception(404, "Vlans not found"); }
 			else									{ return array("code"=>200, "data"=>$this->prepare_result ($result, null, true, true)); }
 		}
 		// read vlan details
 		else {
 			$result = $this->Tools->fetch_object ("vlans", "vlanId", $this->_params->id);
 			// check result
-			if($result==NULL)						{ $this->Response->throw_exception(200, "Vlan not found"); }
+			if($result==NULL)						{ $this->Response->throw_exception(404, "Vlan not found"); }
 			else									{ return array("code"=>200, "data"=>$this->prepare_result ($result, null, true, true)); }
 		}
-	}
-
-
-
-
-	/**
-	 * HEAD, no response
-	 *
-	 * @access public
-	 * @return void
-	 */
-	public function HEAD () {
-		return $this->GET ();
 	}
 
 
@@ -382,17 +320,4 @@ class Vlans_controller extends Common_api_functions {
 		if($this->Tools->fetch_object ("vlanDomains", "id", $this->_params->domainId) === false )
 																							{ $this->Response->throw_exception(400, "Invalid domain id"); }
 	}
-
-	/**
-	 * Returns id of subnet gateay
-	 *
-	 * @access private
-	 * @params mixed $subnetId
-	 * @return void
-	 */
-	private function read_subnet_gateway ($subnetId) {
-    	return $this->Subnets->find_gateway ($subnetId);
-	}
 }
-
-?>

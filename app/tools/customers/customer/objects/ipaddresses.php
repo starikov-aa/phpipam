@@ -82,11 +82,11 @@ foreach($addresses as $dummy) {
 	    $tDiff = time() - strtotime($addresses[$n]->lastSeen);
 	    if($addresses[$n]->excludePing=="1" ) { $hStatus = "padded"; $hTooltip = ""; }
 	    if(is_null($addresses[$n]->lastSeen))   { $hStatus = "neutral"; $hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Address was never online")."'"; }
+	    elseif($addresses[$n]->lastSeen == "0000-00-00 00:00:00") { $hStatus = "neutral"; 	$hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Address is offline")."<hr>"._("Last seen").": "._("Never")."'";}
+	    elseif($addresses[$n]->lastSeen == "1970-01-01 00:00:01") { $hStatus = "neutral"; 	$hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Address is offline")."<hr>"._("Last seen").": "._("Never")."'";}
 	    elseif($tDiff < $statuses[0])	{ $hStatus = "success";	$hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Address is alive")."<hr>"._("Last seen").": ".$addresses[$n]->lastSeen."'"; }
 	    elseif($tDiff < $statuses[1])	{ $hStatus = "warning"; $hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Address warning")."<hr>"._("Last seen").": ".$addresses[$n]->lastSeen."'"; }
 	    elseif($tDiff > $statuses[1])	{ $hStatus = "error"; 	$hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Address is offline")."<hr>"._("Last seen").": ".$addresses[$n]->lastSeen."'";}
-	    elseif($addresses[$n]->lastSeen == "0000-00-00 00:00:00") { $hStatus = "neutral"; 	$hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Address is offline")."<hr>"._("Last seen").": "._("Never")."'";}
-	    elseif($addresses[$n]->lastSeen == "1970-01-01 00:00:01") { $hStatus = "neutral"; 	$hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Address is offline")."<hr>"._("Last seen").": "._("Never")."'";}
 	    else							{ $hStatus = "neutral"; $hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Address status unknown")."'";}
     }
     else {
@@ -120,22 +120,13 @@ foreach($addresses as $dummy) {
             	$addresses[$n]->mac = $User->reformat_mac_address ($addresses[$n]->mac, 1);
         	}
     	}
-
-        // get MAC vendor
-        if($User->settings->decodeMAC=="1") {
-            $mac_vendor = $User->get_mac_address_vendor_details ($addresses[$n]->mac);
-            $mac_vendor = $mac_vendor==""||is_bool($mac_vendor) ? "" : "<hr>"._("Vendor").": ".$mac_vendor;
-        }
-        else {
-        	$mac_vendor = "";
-        }
-		if(!empty($addresses[$n]->mac)) 				{ print "<td class='narrow'><i class='info fa fa-gray fa-sitemap' rel='tooltip' data-container='body' data-html='true' title='"._('MAC').": ".$addresses[$n]->mac.$mac_vendor."'></i></td>"; }
+		if(!empty($addresses[$n]->mac)) 				{ print "<td class='narrow'><i class='info fa fa-gray fa-sitemap' rel='tooltip' data-container='body' data-html='true' title='".$User->show_mac_and_vendor($addresses[$n]->mac)."'></i></td>"; }
 		else 											{ print "<td class='narrow'></td>"; }
 	}
 
 	// print info button for hover
 	if(in_array('note', $selected_ip_fields)) {
-		if(!empty($addresses[$n]->note)) 					{ print "<td class='narrow'><i class='fa fa-gray fa-comment-o' rel='tooltip' data-container='body' data-html='true' title='".str_replace("\n", "<br>", addslashes(str_replace("'", "&#39;", $addresses[$n]->note)))."'></td>"; }
+		if(!empty($addresses[$n]->note)) 					{ print "<td class='narrow'><i class='fa fa-gray fa-comment-o' rel='tooltip' data-container='body' data-html='true' title='".str_replace("\n", "<br>", addslashes(str_replace("'", "&#39;", $addresses[$n]->note)))."'></i></td>"; }
 		else 												{ print "<td class='narrow'></td>"; }
 	}
 
@@ -165,24 +156,24 @@ foreach($addresses as $dummy) {
 	print "	<td class='actions'>";
     $links = [];
 
-    $links[] = ["type"=>"header", "text"=>"View"];
-    $links[] = ["type"=>"link", "text"=>"Show address", "href"=>create_link("subnets",$subnet['sectionId'],$dummy->subnetId,"address-details",$dummy->id), "icon"=>"eye", "visible"=>"dropdown"];
+    $links[] = ["type"=>"header", "text"=>_("View")];
+    $links[] = ["type"=>"link", "text"=>_("Show address"), "href"=>create_link("subnets",$subnet['sectionId'],$dummy->subnetId,"address-details",$dummy->id), "icon"=>"eye", "visible"=>"dropdown"];
 
     if($subnet_permission>1) {
-    	// manage
-	    $links[] = ["type"=>"divider"];
-        $links[] = ["type"=>"header", "text"=>"Manage"];
-        $links[] = ["type"=>"link", "text"=>"Edit address",   "href"=>"", "class"=>"modIPaddr", "dataparams"=>" data-action='edit'  data-subnetId='".$addresses[$n]->subnetId."' data-id='".$addresses[$n]->id."'", "icon"=>"pencil"];
-        $links[] = ["type"=>"link", "text"=>"Delete address", "href"=>"", "class"=>"modIPaddr", "dataparams"=>" data-action='delete' data-subnetId='".$addresses[$n]->subnetId."' data-id='".$addresses[$n]->id."' href='#' id2='".$Subnets->transform_to_dotted($addresses[$n]->ip_addr)."'", "icon"=>"times"];
-	    // ping
-	    $links[] = ["type"=>"divider"];
-        $links[] = ["type"=>"header", "text"=>"Status check"];
-        $links[] = ["type"=>"link", "text"=>"Check availability", "href"=>"", "class"=>"ping_ipaddress", "dataparams"=>" data-subnetId='".$addresses[$n]->subnetId."' data-id='".$addresses[$n]->id."'", "icon"=>"cogs"];
+        // manage
+        $links[] = ["type"=>"divider"];
+        $links[] = ["type"=>"header", "text"=>_("Manage")];
+        $links[] = ["type"=>"link", "text"=>_("Edit address"), "href"=>"", "class"=>"modIPaddr", "dataparams"=>" data-action='edit'  data-subnetId='".$addresses[$n]->subnetId."' data-id='".$addresses[$n]->id."'", "icon"=>"pencil"];
+        $links[] = ["type"=>"link", "text"=>_("Delete address"), "href"=>"", "class"=>"modIPaddr", "dataparams"=>" data-action='delete' data-subnetId='".$addresses[$n]->subnetId."' data-id='".$addresses[$n]->id."' href='#' id2='".$Subnets->transform_to_dotted($addresses[$n]->ip_addr)."'", "icon"=>"times"];
+        // ping
+        $links[] = ["type"=>"divider"];
+        $links[] = ["type"=>"header", "text"=>_("Status check")];
+        $links[] = ["type"=>"link", "text"=>_("Check availability"), "href"=>"", "class"=>"ping_ipaddress", "dataparams"=>" data-subnetId='".$addresses[$n]->subnetId."' data-id='".$addresses[$n]->id."'", "icon"=>"cogs"];
     }
     if($User->get_module_permissions ("customers")>=User::ACCESS_RW) {
- 	    $links[] = ["type"=>"divider"];
-        $links[] = ["type"=>"header", "text"=>"Unlink"];
-        $links[] = ["type"=>"link", "text"=>"Unlink object", "href"=>"", "class"=>"open_popup", "dataparams"=>" data-script='app/admin/customers/unlink.php' data-class='700' data-object='ipaddresses' data-id='{$addresses[$n]->id}'", "icon"=>"unlink"];
+        $links[] = ["type"=>"divider"];
+        $links[] = ["type"=>"header", "text"=>_("Unlink")];
+        $links[] = ["type"=>"link", "text"=>_("Unlink object"), "href"=>"", "class"=>"open_popup", "dataparams"=>" data-script='app/admin/customers/unlink.php' data-class='700' data-object='ipaddresses' data-id='{$addresses[$n]->id}'", "icon"=>"unlink"];
     }
     // print links
     print $User->print_actions($User->user->compress_actions, $links);

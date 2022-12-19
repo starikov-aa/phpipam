@@ -11,7 +11,8 @@ $User->check_user_session();
 /* fetch all custom fields */
 $custom_tables = array(
 						"ipaddresses"      => _("IP addresses"),
-						"subnets"          => _("subnets"),
+						"requests"         => _("IP requests"),
+						"subnets"          => _("Subnets"),
 						"vlans"            => _("VLAN"),
 						"vrf"              => _("VRF"),
 						"users"            => _("User"),
@@ -26,6 +27,8 @@ $custom_tables = array(
 						"customers" 	   => _("Customers"),
 						"nat"			   => _("NAT"),
 						"routing_bgp" 	   => _("BGP Routing"),
+						"vaults" 	       => _("Vaults"),
+						"vaultItems" 	   => _("Vault items"),
 						//"routing_ospf" 	   => _("OSPF Routing")
 						);
 

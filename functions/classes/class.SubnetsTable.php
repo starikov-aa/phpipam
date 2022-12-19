@@ -47,7 +47,7 @@ class SubnetsTable {
 
 		$this->Tools->get_Settings();
 
-		$hiddenCustomFields = json_decode($this->Tools->settings->hiddenCustomFields, true);
+		$hiddenCustomFields = json_decode($this->Tools->settings->hiddenCustomFields, true) ? : ['subnets'=>null];
 		$this->hidden_fields = is_array($hiddenCustomFields['subnets']) ? $hiddenCustomFields['subnets'] : array();
 
 		# fetch all vlans and domains and reindex
@@ -167,11 +167,11 @@ class SubnetsTable {
 					//text
 					elseif($field['type']=="text") {
 						if(strlen($subnet->{$field['name']})>0)
-							$tr[$field_name] = "<i class='fa fa-gray fa-comment' rel='tooltip' data-container='body' data-html='true' title='". htmlentities($subnet->{$field['name']}) ."'>";
+							$tr[$field_name] = "<i class='fa fa-gray fa-comment' rel='tooltip' data-container='body' data-html='true' title='". ($subnet->{$field['name']}) ."'>";
 						else
 							$tr[$field_name] = '';
 					} else {
-						$tr[$field_name] = htmlentities($subnet->{$field['name']});
+						$tr[$field_name] = ($subnet->{$field['name']});
 					}
 				}
 			}

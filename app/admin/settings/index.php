@@ -541,6 +541,17 @@ $(document).ready(function() {
 	</td>
 </tr>
 
+<!-- Vaults -->
+<tr>
+	<td class="title"><?php print _("Enable Vaults"); ?></td>
+	<td>
+		<input type="checkbox" class="input-switch" value="1" name="enableVaults" <?php if($settings['enableVaults'] == 1) print 'checked'; ?>>
+	</td>
+	<td class="info2">
+		<?php print _('Enable Vaults for storing encrypted information'); ?>
+	</td>
+</tr>
+
 
 <!-- ICPM -->
 <tr class="settings-title">
@@ -569,12 +580,7 @@ $(document).ready(function() {
 <!-- Ping path -->
 <tr>
 	<td class="title"><?php print _('Ping path'); ?></td>
-	<?php
-	//verify that ping file exists!
-	if(!file_exists($settings['scanPingPath'])&&$settings['scanFPingType']=="ping")		{ $class="danger"; }
-	else																				{ $class=""; }
-	?>
-	<td class="<?php print $class; ?>">
+	<td class="<?php print !file_exists($settings['scanPingPath']) ? 'danger' : ''; ?>">
 		<input type="text" class="form-control input-sm" name="scanPingPath" value="<?php print $settings['scanPingPath']; ?>">
 	</td>
 	<td class="info2">
@@ -585,12 +591,7 @@ $(document).ready(function() {
 <!-- fping path -->
 <tr>
 	<td class="title"><?php print _('FPing path'); ?></td>
-	<?php
-	//verify that ping file exists!
-	if(!file_exists($settings['scanFPingPath'])&&$settings['scanFPingType']=="fping")	{ $class="danger"; }
-	else																				{ $class=""; }
-	?>
-	<td class="<?php print $class; ?>">
+	<td class="<?php print !file_exists($settings['scanFPingPath']) ? 'danger' : ''; ?>">
 		<input type="text" class="form-control input-sm" name="scanFPingPath" value="<?php print $settings['scanFPingPath']; ?>">
 	</td>
 	<td class="info2">

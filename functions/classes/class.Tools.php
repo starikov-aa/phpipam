@@ -7,16 +7,6 @@
 class Tools extends Common_functions {
 
 	/**
-	 * (array) IP address types from Addresses object
-	 *
-	 * (default value: null)
-	 *
-	 * @var mixed
-	 * @access public
-	 */
-	public $address_types = null;
-
-	/**
 	 * CSV delimiter
 	 *
 	 * @var string
@@ -187,23 +177,24 @@ class Tools extends Common_functions {
 	 *
 	 * @access public
 	 * @param mixed $search_term
-	 * @param string $high (default: "")
-	 * @param string $low (default: "")
+	 * @param string $high
+	 * @param string $low
 	 * @param mixed $search_req
 	 * @param mixed $custom_fields (default: array())
 	 * @return array
 	 */
-	public function search_subnets($search_term, $high = "", $low = "", $search_req, $custom_fields = array()) {
+	public function search_subnets($search_term, $high, $low, $search_req, $custom_fields = array()) {
 		# first search if range provided
 		$result1 = $this->search_subnets_range  ($search_term, $high, $low, $custom_fields);
 		# search inside subnets even if IP does not exist!
-		$result2 = $this->search_subnets_inside ($high, $low);
-		# search inside subnets even if IP does not exist - IPv6
-		$result3 = $this->search_subnets_inside_v6 ($high, $low, $search_req);
-		# merge arrays
-		$result = array_merge($result1, $result2, $result3);
-	    # result
-	    return array_filter($result);
+		$result2 = $this->search_subnets_inside ($search_term, $high, $low);
+		# filter results based on id
+		$results = [];
+		foreach (array_merge($result1, $result2) as $result) {
+			$results[$result->id] = $result;
+		}
+		# result
+		return $results;
 	}
 
 	/**
@@ -222,7 +213,8 @@ class Tools extends Common_functions {
 
 		# set search query
 		$query[] = "select * from `subnets` where `description` like :search_term ";
-		$query[] = "or (`subnet` >= :low and `subnet` <= :high )";
+		# search low/high
+		$query[] = " or (`subnet` >=  '$low' and `subnet` <=  '$high')";
 		# custom
 	    if(sizeof($custom_fields) > 0) {
 			foreach($custom_fields as $myField) {
@@ -236,7 +228,7 @@ class Tools extends Common_functions {
 		$query = implode("\n", $query);
 
 		# fetch
-		try { $result = $this->Database->getObjectsQuery($query, array("low"=>$low, "high"=>$high, "search_term"=>"%$search_term%")); }
+		try { $result = $this->Database->getObjectsQuery($query, array("search_term"=>"%$search_term%")); }
 		catch (Exception $e) {
 			$this->Result->show("danger", _("Error: ").$e->getMessage());
 			return false;
@@ -253,105 +245,22 @@ class Tools extends Common_functions {
 	 * @param string $low
 	 * @return array
 	 */
-	private function search_subnets_inside ($high, $low) {
-		if($low==$high) {
-			# subnets class
-			$Subnets = new Subnets ($this->Database);
-			# fetch all subnets
-			$subnets = $Subnets->fetch_all_subnets_search();
-			# loop and search
-			$ids = array();
-			foreach($subnets as $s) {
-				# cast
-				$s = (array) $s;
+	private function search_subnets_inside($search_term, $high, $low) {
+		# subnets class
+		$Subnets = new Subnets($this->Database);
 
-				//first verify address type
-				$type = $this->identify_address($s['subnet']);
-
-				if($type == "IPv4") {
-					# Initialize PEAR NET object
-					$this->initialize_pear_net_IPv4 ();
-					# parse address
-					$net = $this->Net_IPv4->parseAddress($this->transform_address($s['subnet']).'/'.$s['mask'], "dotted");
-
-					if($low>=$this->transform_to_decimal(@$net->network) && $low<=$this->transform_address($net->broadcast, "decimal")) {
-						$ids[] = $s['id'];
-					}
-				}
-			}
-			# filter
-			$ids = sizeof(@$ids)>0 ? array_filter($ids) : array();
-
-			$result = array();
-
-			# search
-			if(sizeof($ids)>0) {
-				foreach($ids as $id) {
-					$result[] = $Subnets->fetch_subnet(null, $id);
-				}
-			}
-			# return
-			return sizeof(@$result)>0 ? array_filter($result) : array();
+		if ($low == $high) {
+			$mask = $Subnets->identify_address($low) == "IPv4" ? 32 : 128;
+			$cidr = $Subnets->transform_to_dotted($low) . "/" . $mask;
+		} elseif ($Subnets->verify_cidr_address($search_term) === true) {
+			$cidr = $search_term;
+		} else {
+			return [];
 		}
-		else {
-			return array();
-		}
-	}
 
+		$subnets = $Subnets->fetch_overlapping_subnets($cidr);
 
-	/**
-	 * Search inside subnets if host address is provided! ipv6
-	 *
-	 * @access private
-	 * @param string $high
-	 * @param string $low
-	 * @return array
-	 */
-	private function search_subnets_inside_v6 ($high, $low, $search_req) {
-		// same
-		if($low==$high) {
-			# Initialize PEAR NET object
-			$this->initialize_pear_net_IPv6 ();
-
-			// validate
-			if ($this->Net_IPv6->checkIPv6($search_req)) {
-				# subnets class
-				$Subnets = new Subnets ($this->Database);
-				# fetch all subnets
-				$subnets = $Subnets->fetch_all_subnets_search("IPv6");
-				# loop and search
-				$ids = array();
-				foreach($subnets as $s) {
-					# cast
-					$s = (array) $s;
-					# parse address
-					$net = $this->Net_IPv6->parseAddress($this->transform_address($s['subnet'], "dotted").'/'.$s['mask']);
-
-					if(gmp_cmp($low, $this->transform_address(@$net['start'], "decimal")) == 1 && gmp_cmp($low, $this->transform_address(@$net['end'], "decimal")) == -1) {
-						$ids[] = $s['id'];
-
-					}
-				}
-				# filter
-				$ids = sizeof(@$ids)>0 ? array_filter($ids) : array();
-				# search
-				$result = array();
-				if(sizeof($ids)>0) {
-					foreach($ids as $id) {
-						$result[] = $Subnets->fetch_subnet(null, $id);
-					}
-				}
-				# return
-				return sizeof(@$result)>0 ? array_filter($result) : array();
-			}
-			// empty
-			else {
-				return array();
-			}
-		}
-		else {
-			return array();
-		}
+		return is_array($subnets) ? array_reverse($subnets) : [];
 	}
 
 	/**
@@ -793,7 +702,7 @@ class Tools extends Common_functions {
 	 * Read the SCHEMA.sql file and enforce UNIX LF
 	 *
 	 * @access private
-	 * @return array
+	 * @return string
 	 */
 	private function read_db_schema() {
 		$fh = fopen(dirname(__FILE__) . '/../../db/SCHEMA.sql', 'r');
@@ -997,8 +906,15 @@ class Tools extends Common_functions {
 	 * @return array|null
 	 */
 	public function requests_fetch_available_subnets () {
-		try { $subnets = $this->Database->getObjectsQuery("SELECT * FROM `subnets` where `allowRequests`=1 and `isFull`!=1 ORDER BY `subnet`;"); }
-		catch (Exception $e) { $this->Result->show("danger", $e->getMessage(), false);	return false; }
+		// All subnets where allowRequests=1, isFull=0 and subnet has no children.
+		$query = "SELECT s1.* FROM subnets AS s1
+			LEFT JOIN subnets AS s2 ON s2.masterSubnetId = s1.id
+			WHERE s1.allowRequests=1
+			AND s1.isFull!=1
+			AND s2.masterSubnetId IS NULL
+			ORDER BY LPAD(s1.subnet,39,0);";
+		try { $subnets = $this->Database->getObjectsQuery($query); }
+		catch (Exception $e) { $this->Result->show("danger", $e->getMessage(), false);	return NULL; }
 
 		# save
 		return sizeof($subnets)>0 ? (array) $subnets : NULL;
@@ -1008,11 +924,11 @@ class Tools extends Common_functions {
 	 * Sends mail for IP request
 	 *
 	 * @access public
-	 * @param string $action (default: "new")
+	 * @param string $action
 	 * @param mixed $values
 	 * @return bool
 	 */
-	public function ip_request_send_mail ($action="new", $values) {
+	public function ip_request_send_mail ($action, $values) {
 
 		$this->get_settings ();
 
@@ -1036,9 +952,9 @@ class Tools extends Common_functions {
 			$values = $this->reformat_empty_array_fields ($values, "/");
 
 			# generate content
-			if ($action=="new")			{ $subject	= "New IP address request"; }
-			elseif ($action=="accept")	{ $subject	= "IP address request accepted"; }
-			elseif ($action=="reject")	{ $subject	= "IP address request rejected"; }
+			if ($action=="new")			{ $subject	= _("New IP address request"); }
+			elseif ($action=="accept")	{ $subject	= _("IP address request accepted"); }
+			elseif ($action=="reject")	{ $subject	= _("IP address request rejected"); }
 			else						{ $this->Result->show("danger", _("Invalid request action"), true); }
 
 			// set html content
@@ -1057,13 +973,13 @@ class Tools extends Common_functions {
 			$content[] = "</tr>";
 			}
 			}
-			$content[] = "<tr><td style='padding-top:15px;padding-bottom:3px;text-align:right;color:#ccc;'>$this->mail_font_style Sent at ".date('Y/m/d H:i')."</font></td></tr>";
+			$content[] = "<tr><td style='padding-top:15px;padding-bottom:3px;text-align:right;color:#ccc;'>$this->mail_font_style "._("Sent at")." ".date('Y/m/d H:i')."</font></td></tr>";
 			//set alt content
 			$content_plain[] = "$subject"."\r\n------------------------------\r\n";
 			foreach($values as $k=>$v) {
 			$content_plain[] = $k." => ".$v;
 			}
-			$content_plain[] = "\r\n\r\nSent at ".date('Y/m/d H:i');
+			$content_plain[] = "\r\n\r\n".("Sent at")." ".date('Y/m/d H:i');
 			$content[] = "</table>";
 
 			// set content
@@ -1085,10 +1001,10 @@ class Tools extends Common_functions {
 			$phpipam_mail->Php_mailer->AltBody = $content_plain;
 			//send
 			$phpipam_mail->Php_mailer->send();
-		} catch (phpmailerException $e) {
-			$this->Result->show("danger", "Mailer Error: ".$e->errorMessage(), true);
+		} catch (PHPMailer\PHPMailer\Exception $e) {
+			$this->Result->show("danger", _("Mailer Error").": ".$e->errorMessage(), true);
 		} catch (Exception $e) {
-			$this->Result->show("danger", "Mailer Error: ".$e->getMessage(), true);
+			$this->Result->show("danger", _("Mailer Error").": ".$e->getMessage(), true);
 		}
 
 		# ok
@@ -1158,7 +1074,7 @@ class Tools extends Common_functions {
 			// subnetId
 			if ($k=="subnetId")	{
 				// add title
-				$mail["s_title_1"] = "<br>Subnet details";
+				$mail["s_title_1"] = "<br>"._("Subnet details");
 
 				$subnet = $this->fetch_object("subnets", "id", $v);
 				$mail["Subnet"]  = $this->transform_address ($subnet->subnet, "dotted")."/".$subnet->mask;
@@ -1167,12 +1083,12 @@ class Tools extends Common_functions {
 			// ip_addr
 			elseif ($k=="ip_addr") {
 				// add title
-				$mail["s_title_2"] = "<br>Address details";
+				$mail["s_title_2"] = "<br>"._("Address details");
 
 				if (strlen($v)>0) {
 					$mail['IP address'] = $this->transform_address($v, "dotted");
 				} else {
-					$mail['IP address'] = "Automatic";
+					$mail['IP address'] = _("Automatic");
 				}
 			}
 			// state
@@ -1202,7 +1118,7 @@ class Tools extends Common_functions {
 			// admin comment
 			elseif ($k=="adminComment") {
 				// add title
-				$mail["s_title_3"] = "<br>Admin comment";
+				$mail["s_title_3"] = "<br>"._("Admin comment");
 
 				$mail['Admin comment'] = $v;
 			}
@@ -1404,7 +1320,7 @@ class Tools extends Common_functions {
 		# fix
 		try { $this->Database->runQuery($query); }
 		catch (Exception $e) {
-			$this->Result->show("danger", _("Update: ").$e->getMessage()."<br>query: ".$query, true);
+			$this->Result->show("danger", _("Update: ").$e->getMessage()."<br>"._("query").": ".$query, true);
 			return false;
 		}
 		return true;
@@ -1430,7 +1346,7 @@ class Tools extends Common_functions {
 		# fix
 		try { $this->Database->runQuery($query); }
 		catch (Exception $e) {
-			$this->Result->show("danger", _("Update: ").$e->getMessage()."<br>query: ".$query, true);
+			$this->Result->show("danger", _("Update: ").$e->getMessage()."<br>"._("query").": ".$query, true);
 			return false;
 		}
 		return true;
@@ -1503,7 +1419,7 @@ class Tools extends Common_functions {
 	private function get_table_indexes($table) {
 		try { return $indexes = $this->Database->getObjectsQuery("SHOW INDEX from `$table` where `Key_name` != 'PRIMARY';"); }
 		catch (Exception $e) {
-			$this->Result->show("danger", _("Invalid query for `$table` database index check : ").$e->getMessage(), true);
+			$this->Result->show("danger", _("Invalid query for")." `.$table.` "._("database index check : ").$e->getMessage(), true);
 		}
 	}
 
@@ -1576,7 +1492,7 @@ class Tools extends Common_functions {
 					return false;
 				}
 				// add warning that index was created
-				$this->Result->show("warning", _("Created index for table `$table` named `$index_name`."), false);
+				$this->Result->show("warning", _("Created index for table")." `$table` "._("named")." `$index_name`.", false);
 			}
 		}
 	}
@@ -1634,7 +1550,7 @@ class Tools extends Common_functions {
 			// Too complex: Avoid creating an index for this datatype and warn of possible poor performance.
 
 			$this->Result->show("warning",
-				_("Warning: ")._("Unable to create index for MySQL TEXT/BLOB datatypes.")."<br>".
+				_("Warning: ")._("Unable to create index for MySQL TEXT/BLOB data types.")."<br>".
 				_("Reduced performance when displaying linked addresses by ").escape_input($linked_field)." ($data_type)"."<br>".
 				_("Change custom field data type to VARCHAR and re-save to enable indexing.")
 			);
@@ -1679,7 +1595,7 @@ class Tools extends Common_functions {
 		# check
 		if ($curl['result']===false) {
 			if($print_error) {
-				$this->Result->show("danger", "Cannot fetch https://github.com/phpipam/phpipam/releases.atom : ".$curl['error_msg'], false);
+				$this->Result->show("danger", _("Cannot fetch https://github.com/phpipam/phpipam/releases.atom : ").$curl['error_msg'], false);
 			}
 			return false;
 		}
@@ -1954,7 +1870,7 @@ class Tools extends Common_functions {
 	 */
 	private function define_ipv6_address_types () {
         $all_types[10] = "NET_IPV6_NO_NETMASK";
-        $all_types[1]  = "NET_IPV6";
+        $all_types[1]  = "NET_IPV6";  				// NET_IPV6_UNASSIGNED
         $all_types[11] = "NET_IPV6_RESERVED";
         $all_types[12] = "NET_IPV6_RESERVED_NSAP";
         $all_types[13] = "NET_IPV6_RESERVED_IPX";
@@ -1964,9 +1880,9 @@ class Tools extends Common_functions {
         $all_types[42] = "NET_IPV6_LOCAL_LINK";
         $all_types[43] = "NET_IPV6_LOCAL_SITE";
         $all_types[51] = "NET_IPV6_IPV4MAPPING";
-        $all_types[51] = "NET_IPV6_UNSPECIFIED";
-        $all_types[51] = "NET_IPV6_LOOPBACK";
-        $all_types[51] = "NET_IPV6_UNKNOWN_TYPE";
+        $all_types[52] = "NET_IPV6_UNSPECIFIED";
+        $all_types[53] = "NET_IPV6_LOOPBACK";
+        $all_types[1001] = "NET_IPV6_UNKNOWN_TYPE";
 		# response
         return $all_types;
 	}
@@ -1993,12 +1909,12 @@ class Tools extends Common_functions {
      * Translates NAT objects to be shown on page
      *
      * @access public
-     * @param json $json_objects
+     * @param string $json_objects
      * @param int|bool $nat_id (default: false)
      * @param bool $json_objects (default: false)
      * @param bool $object_type (default: false) - to bold it (ipaddresses / subnets)
      * @param int|bool object_id (default: false) - to bold it
-     * @return array|bool
+     * @return array|false
      */
     public function translate_nat_objects_for_display ($json_objects, $nat_id = false, $admin = false, $object_type = false, $object_id=false) {
         // to array "subnets"=>array(1,2,3)
@@ -2035,11 +1951,11 @@ class Tools extends Common_functions {
                                         $tDiff = time() - strtotime($item->lastSeen);
                                         if($item->excludePing=="1" )    { $hStatus = "padded"; $hTooltip = ""; }
                                         elseif(is_null($item->lastSeen)) { $hStatus = "neutral"; $hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Address was never online")."'"; }
+                                        elseif($item->lastSeen == "0000-00-00 00:00:00") { $hStatus = "neutral"; 	$hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Address is offline")."<hr>"._("Last seen").": "._("Never")."'";}
+                                        elseif($item->lastSeen == "1970-01-01 00:00:01") { $hStatus = "neutral"; 	$hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Address is offline")."<hr>"._("Last seen").": "._("Never")."'";}
                                         elseif($tDiff < $statuses[0])	{ $hStatus = "success";	$hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Address is alive")."<hr>"._("Last seen").": ".$item->lastSeen."'"; }
                                         elseif($tDiff < $statuses[1])	{ $hStatus = "warning"; $hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Address warning")."<hr>"._("Last seen").": ".$item->lastSeen."'"; }
                                         elseif($tDiff > $statuses[1])	{ $hStatus = "error"; 	$hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Address is offline")."<hr>"._("Last seen").": ".$item->lastSeen."'";}
-                                        elseif($item->lastSeen == "0000-00-00 00:00:00") { $hStatus = "neutral"; 	$hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Address is offline")."<hr>"._("Last seen").": "._("Never")."'";}
-                                        elseif($item->lastSeen == "1970-01-01 00:00:01") { $hStatus = "neutral"; 	$hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Address is offline")."<hr>"._("Last seen").": "._("Never")."'";}
                                         else							{ $hStatus = "neutral"; $hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Address status unknown")."'";}
                                     }
                                     else {
@@ -2381,7 +2297,7 @@ class Tools extends Common_functions {
 	 */
 	public function check_number_duplicates ($prefix = false, $number = false) {
     	if($prefix===false && $number===false) {
-        	$this->Result->show("danger", "Duplicate chck failed", true);
+        	$this->Result->show("danger", _("Duplicate check failed"), true);
     	}
     	else {
         	$query = "select count(*) as cnt from pstnNumbers where prefix = ? and number = ?;";
@@ -2563,16 +2479,16 @@ class Tools extends Common_functions {
 				if($User->get_module_permissions ("pstn")>=User::ACCESS_R) {
 					$html[] = "	<td class='actions' style='padding:0px;'>";
 					$links = [];
-			        $links[] = ["type"=>"header", "text"=>"Show"];
-			        $links[] = ["type"=>"link", "text"=>"View prefix", "href"=>create_link($_GET['page'], "pstn-prefixes", $option['id']), "icon"=>"eye", "visible"=>"dropdown"];
+			        $links[] = ["type"=>"header", "text"=>_("Show")];
+			        $links[] = ["type"=>"link", "text"=>_("View prefix"), "href"=>create_link($_GET['page'], "pstn-prefixes", $option['id']), "icon"=>"eye", "visible"=>"dropdown"];
 
 			        if($User->get_module_permissions ("pstn")>=User::ACCESS_RW) {
 			            $links[] = ["type"=>"divider"];
-			            $links[] = ["type"=>"header", "text"=>"Manage"];
-			            $links[] = ["type"=>"link", "text"=>"Edit prefix", "href"=>"", "class"=>"open_popup", "dataparams"=>" data-script='app/tools/pstn-prefixes/edit.php' data-class='700' data-action='edit' data-id='$option[id]'", "icon"=>"pencil"];
+			            $links[] = ["type"=>"header", "text"=>_("Manage")];
+			            $links[] = ["type"=>"link", "text"=>_("Edit prefix"), "href"=>"", "class"=>"open_popup", "dataparams"=>" data-script='app/tools/pstn-prefixes/edit.php' data-class='700' data-action='edit' data-id='$option[id]'", "icon"=>"pencil"];
 			        }
 			        if($User->get_module_permissions ("pstn")>=User::ACCESS_RWA) {
-			            $links[] = ["type"=>"link", "text"=>"Delete prefix", "href"=>"", "class"=>"open_popup", "dataparams"=>" data-script='app/tools/pstn-prefixes/edit.php' data-class='700' data-action='delete' data-id='$option[id]'", "icon"=>"times"];
+			            $links[] = ["type"=>"link", "text"=>_("Delete prefix"), "href"=>"", "class"=>"open_popup", "dataparams"=>" data-script='app/tools/pstn-prefixes/edit.php' data-class='700' data-action='delete' data-id='$option[id]'", "icon"=>"times"];
 			        }
 			        $html[] = $User->print_actions($User->user->compress_actions, $links);
 					$html[] = "	</td>";
@@ -2675,6 +2591,7 @@ class Tools extends Common_functions {
     	$size = sizeof($numbers);
     	// vars
     	$numbers_formatted = array();
+		$fIndex = null;
 
 		# loop through IP addresses
 		for($c=0; $c<$size; $c++) {
@@ -2736,11 +2653,14 @@ class Tools extends Common_functions {
 	 * Calculates pstn usage - dhcp, active, ...
 	 *
 	 * @access public
-	 * @param obj $prefix        //subnet in decimal format
-	 * @param obj $numbers	     //netmask in decimal format
+	 * @param object $prefix        //subnet in decimal format
+	 * @param object $numbers	     //netmask in decimal format
 	 * @return array
 	 */
 	public function calculate_prefix_usege ($prefix, $numbers) {
+		// fetch address types
+		$this->get_addresses_types();
+
 	    # calculate max number of hosts
 	    $details = array();
 	    $details['maxhosts'] = ($prefix->stop - $prefix->start + 1);
@@ -2773,10 +2693,11 @@ class Tools extends Common_functions {
 	 * @return array
 	 */
 	public function calculate_prefix_usage_sort_numbers ($numbers) {
+		// fetch address types
+		$this->get_addresses_types();
+
 		$count = array();
 		$count['used'] = 0;				//initial sum count
-		# fetch address types
-		$this->get_addresses_types();
 		# create array of keys with initial value of 0
 		foreach($this->address_types as $a) {
 			$count[$a['type']] = 0;
@@ -2790,43 +2711,6 @@ class Tools extends Common_functions {
 		}
 		# result
 		return $count;
-	}
-
-	/**
-	 * Returns array of address types
-	 *
-	 * @access public
-	 */
-	public function get_addresses_types () {
-		# from cache
-		if($this->address_types == null) {
-        	# fetch
-        	$types = $this->fetch_all_objects ("ipTags", "id");
-
-            # save to array
-			$types_out = array();
-			foreach($types as $t) {
-				$types_out[$t->id] = (array) $t;
-			}
-			# save to cache
-			$this->address_types = $types_out;
-		}
-	}
-
-	/**
-	 * Translates address type from index (int) to type
-	 *
-	 *	e.g.: 0 > offline
-	 *
-	 * @access public
-	 * @param mixed $index
-	 * @return array
-	 */
-	public function translate_address_type ($index) {
-		# fetch
-		$this->get_addresses_types();
-		# return
-		return $this->address_types[$index]["type"];
 	}
 
 	/**
@@ -3120,7 +3004,7 @@ class Tools extends Common_functions {
 			// fetch location
 			$location = $this->fetch_object ("locations", "id", $locationId);
 			// check
-			if ($device === false) {
+			if ($location === false) {
 				return false;
 			}
 			else {
@@ -3248,13 +3132,13 @@ class Tools extends Common_functions {
 	 */
 	public function get_customer_object_types () {
 		return [
-				"subnets"     => "Subnets",
-				"ipaddresses" => "Addresses",
-				"vlans"       => "VLAN",
-				"vrf"         => "VRF",
-				"circuits"    => "Circuits",
-				"racks"       => "Racks",
-				"routing_bgp" => "BGP Routing"
+				"subnets"     => _("Subnets"),
+				"ipaddresses" => _("Addresses"),
+				"vlans"       => _("VLAN"),
+				"vrf"         => _("VRF"),
+				"circuits"    => _("Circuits"),
+				"racks"       => _("Racks"),
+				"routing_bgp" => _("BGP Routing")
 				];
 	}
 
@@ -3281,12 +3165,12 @@ class Tools extends Common_functions {
 	 * Parses import file
 	 *
 	 * @access public
-	 * @param string $filetype (default: "xls")
+	 * @param string $filetype
 	 * @param object $subnet
 	 * @param array $custom_address_fields
 	 * @return array
 	 */
-	public function parse_import_file ($filetype = "xls", $subnet = object, $custom_address_fields) {
+	public function parse_import_file ($filetype, $subnet, $custom_address_fields) {
     	# start object and get settings
     	$this->get_settings ();
     	$this->Subnets = new Subnets ($this->Database);
@@ -3433,8 +3317,10 @@ class Tools extends Common_functions {
 	 * @param object $subnet
 	 * @return void
 	 */
-	private function parse_validate_file ($outFile = array(), $subnet = object) {
+	private function parse_validate_file ($outFile = array(), $subnet) {
     	$result = array();
+    	$errors = 0;
+
     	# present ?
     	if (sizeof($outFile)>0) {
             foreach($outFile as $k=>$line) {
