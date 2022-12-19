@@ -2276,4 +2276,36 @@ class Common_functions  {
 	    // result
 	    return implode("\n", $html);
 	}
+
+    /**
+     * @param $ip
+     * @param $IpRange
+     * @return bool
+     */
+    public function isIpInRange($ip, $IpRange): bool
+    {
+        $IpRange = explode('/', $IpRange);
+        $range_start  = ip2long($IpRange[0]);
+        $range_end  = $range_start + pow(2, 32-intval($IpRange[1])) - 1;
+        $ip = ip2long($ip);
+        return ($ip >=$range_start && $ip <= $range_end);
+    }
+
+
+    /**
+     * @param $arrayForSearch
+     * @param $keyForSearch
+     * @param $searchValue
+     * @param bool $returnArrayId
+     * @return bool|mixed
+     */
+    public function findInAssocArray($arrayForSearch, $keyForSearch, $searchValue, bool $returnArrayId = false)
+    {
+        $Result = false;
+        $id = array_search($searchValue, array_column($arrayForSearch, $keyForSearch));
+        if ($id !== false && $id !== null){
+            $Result = $returnArrayId ? $id : $arrayForSearch[$id];
+        }
+        return $Result;
+    }
 }

@@ -19,14 +19,14 @@
  *  write_  : methods to save data
  *
  */
-class DHCP extends Common_functions {
-
+class DHCP extends Common_functions
+{
     /**
      * List of supported DHCP servers, needed for validation
      *
      * (default value: array("kea"))
      *
-     * @var array
+     * @var string
      * @access private
      */
     private $dhcp_server_types = array("kea");
@@ -66,11 +66,6 @@ class DHCP extends Common_functions {
     private $DHCP_server = false;
 
 
-
-
-
-
-
     /**
      * __construct function.
      *
@@ -79,23 +74,29 @@ class DHCP extends Common_functions {
      * @param array $dhcp_settings (default: array())
      * @return void
      */
-    public function __construct($server_type, $dhcp_settings = array()) {
+    public function __construct($server_type, $dhcp_settings = array())
+    {
         // init Result class
         $this->Result = new Result ();
 
         // validate and set server type
-        if(!in_array($server_type, $this->dhcp_server_types)) {
-            $this->Result->show("danger",_("Invalid server type")." ".$server_type, true);
-        }
-        else {
+        if (!in_array($server_type, $this->dhcp_server_types)) {
+            $this->Result->show("danger", _("Invalid server type $server_type"), true);
+        } else {
             $this->dhcp_selected_type = $server_type;
         }
 
         // save settings
-        $this->dhcp_settings = (array) $dhcp_settings;
+        if (isset($dhcp_settings['type'])) {
+            $this->dhcp_settings = (array)$dhcp_settings;
+        } else {
+            $Database = new Database_PDO;
+            $User = new User ($Database);
+            $this->dhcp_settings = json_decode($User->settings->DHCP, true)[$server_type];
+        }
 
         // init class
-        $this->init_dhcp_server_class ();
+        $this->init_dhcp_server_class();
     }
 
     /**
@@ -104,18 +105,18 @@ class DHCP extends Common_functions {
      * @access private
      * @return void
      */
-    private function init_dhcp_server_class () {
+    private function init_dhcp_server_class()
+    {
         // validate class file
-        $this->verify_class_file ();
+        $this->verify_class_file();
         // set class to call
-        $dhcp_class = "DHCP_".$this->dhcp_selected_type;
+        $dhcp_class = "DHCP_" . $this->dhcp_selected_type;
         // init
-		try {
-		    $this->DHCP_server = new $dhcp_class ($this->dhcp_settings);
-		}
-		catch(Exception $e) {
-			$this->Result->show("danger", $e->getMessage(), true);
-		}
+        try {
+            $this->DHCP_server = new $dhcp_class ($this->dhcp_settings);
+        } catch (Exception $e) {
+            $this->Result->show("danger", $e->getMessage(), true);
+        }
     }
 
     /**
@@ -124,12 +125,12 @@ class DHCP extends Common_functions {
      * @access private
      * @return void
      */
-    private function verify_class_file () {
-        if(!file_exists(dirname(__FILE__)."/class.DHCP.".$this->dhcp_selected_type.".php")) {
-            $this->Result->show("danger", _("Missing class file")." /functions/classes/class.DHCP.".$this->dhcp_selected_type.".php", true);
-        }
-        else {
-            include(dirname(__FILE__)."/class.DHCP.".$this->dhcp_selected_type.".php");
+    private function verify_class_file()
+    {
+        if (!file_exists(dirname(__FILE__) . "/class.DHCP." . $this->dhcp_selected_type . ".php")) {
+            $this->Result->show("danger", _("Missing class file") . " /functions/classes/class.DHCP." . $this->dhcp_selected_type . ".php", true);
+        } else {
+            include(dirname(__FILE__) . "/class.DHCP." . $this->dhcp_selected_type . ".php");
         }
     }
 
@@ -140,16 +141,12 @@ class DHCP extends Common_functions {
      * @param mixed $method
      * @return void
      */
-    private function validate_dhcp_type_method ($method) {
+    private function validate_dhcp_type_method($method)
+    {
         if (!method_exists($this->DHCP_server, $method)) {
-            $this->Result->show("danger", _("Method")." `$method` "._("does not exist in class")." `class.DHCP".$this->dhcp_selected_type.".php`", true);
+            $this->Result->show("danger", _("Method `$method` does not exist in class `class.DHCP." . $this->dhcp_selected_type . ".php`"), true);
         }
     }
-
-
-
-
-
 
     /* @read methods --------------- */
 
@@ -159,7 +156,8 @@ class DHCP extends Common_functions {
      * @access public
      * @return void
      */
-    public function read_config_raw () {
+    public function read_config_raw()
+    {
         return $this->DHCP_server->config_raw;
     }
 
@@ -177,7 +175,8 @@ class DHCP extends Common_functions {
      * @access public
      * @return void
      */
-    public function read_config () {
+    public function read_config()
+    {
         return $this->DHCP_server->config;
     }
 
@@ -189,7 +188,7 @@ class DHCP extends Common_functions {
      *  Returns:
      *      - if IP version is not used return false
      *      - if No subnets of type are available empty array will be returned
-     *      - else return array of subnets
+     *      - else return array of subnets with the specified key (id, subnet)
      *
      *  Array of subnets must contain following keys:
      *
@@ -202,16 +201,32 @@ class DHCP extends Common_functions {
      *
      * @access public
      * @param string $type (default: "IPv4")
-     * @return void
+     * @param string $key (default: "id")
+     * @return array|bool
      */
-    public function read_subnets ($type = "IPv4") {
+    public function read_subnets($type = "IPv4", $key = 'id')
+    {
+        $Result = [];
+
         // check if version used
-        $flag = strtolower($type)."_used";
-        if ($this->DHCP_server->{$flag}==false)    { return false; }
+        $flag = strtolower($type) . "_used";
+        if ($this->DHCP_server->{$flag} == false) {
+            return false;
+        }
 
         // return subnets
-        if($type=="IPv6")     { return $this->DHCP_server->subnets6; }
-        else                  { return $this->DHCP_server->subnets4; }
+        if ($type == "IPv6") {
+            $subnets = $this->DHCP_server->subnets6;
+        } else {
+            $subnets = $this->DHCP_server->subnets4;
+        }
+
+        foreach ($subnets as $s) {
+            $key = empty($key) ? "id" : $key;
+            $Result[$s[$key]] = $s;
+        }
+
+        return $Result;
     }
 
     /**
@@ -239,24 +254,29 @@ class DHCP extends Common_functions {
      * @param string $type (default: "IPv4")
      * @return void
      */
-    public function read_leases ($type = "IPv4") {
+    public function read_leases($type = "IPv4")
+    {
         // validate method
-        $this->validate_dhcp_type_method ("get_leases");
+        $this->validate_dhcp_type_method("get_leases");
 
         // check if version used
-        $flag = strtolower($type)."_used";
-        if ($this->DHCP_server->{$flag}==false)    { return false; }
+        $flag = strtolower($type) . "_used";
+        if ($this->DHCP_server->{$flag} == false) {
+            return false;
+        }
 
         // get leases
         try {
-            $this->DHCP_server->get_leases ($type);
-        }
-        catch (Exception $e) {
-             $this->Result->show("danger", $e->getMessage(), false);
+            $this->DHCP_server->get_leases($type);
+        } catch (Exception $e) {
+            $this->Result->show("danger", $e->getMessage(), false);
         }
         // return leases
-        if($type=="IPv6")   { return $this->DHCP_server->leases6; }
-        else                { return $this->DHCP_server->leases4; }
+        if ($type == "IPv6") {
+            return $this->DHCP_server->leases6;
+        } else {
+            return $this->DHCP_server->leases4;
+        }
     }
 
     /**
@@ -282,28 +302,117 @@ class DHCP extends Common_functions {
      * @param string $type (default: "IPv4")
      * @return void
      */
-    public function read_reservations ($type = "IPv4") {
+    public function read_reservations($type = "IPv4")
+    {
         // validate method
-        $this->validate_dhcp_type_method ("get_reservations");
+        $this->validate_dhcp_type_method("get_reservations");
 
         // check if version used
-        $flag = strtolower($type)."_used";
-        if ($this->DHCP_server->{$flag}==false)    { return false; }
+        $flag = strtolower($type) . "_used";
+        if ($this->DHCP_server->{$flag} == false) {
+            return false;
+        }
 
         // get leases
-        $this->DHCP_server->get_reservations ($type);
+        $this->DHCP_server->get_reservations($type);
         // return leases
-        if($type=="IPv6")   { return $this->DHCP_server->reservations6; }
-        else                { return $this->DHCP_server->reservations4; }
+        if ($type == "IPv6") {
+            return $this->DHCP_server->reservations6;
+        } else {
+            return $this->DHCP_server->reservations4;
+        }
     }
 
 
+    /**
+     * Creates a reservation for the specified type of IP
+     *
+     * @param $ip
+     * @param $mac
+     * @param null $subnet_id
+     * @param string $backend
+     * @param string $type
+     */
+    public function write_reservation($ip, $mac, $subnet_id = null, $additional_settings = [], $backend = 'config', $type = 'IPv4')
+    {
+        $this->DHCP_server->write_reservation($ip, $mac, $subnet_id, $additional_settings, $backend, $type);
+    }
 
+    /**
+     * Removes lease with the given type
+     *
+     * @param $ip
+     * @param string $type
+     */
+    public function delete_lease($ip, $type = 'IPv4')
+    {
+        $this->DHCP_server->delete_lease($ip, $type);
+    }
 
+    /**
+     * @param $ip
+     * @param string $type
+     */
+    public function delete_reservation($ip, $type = 'IPv4')
+    {
+        $this->DHCP_server->delete_reservation($ip, $type);
+    }
 
+    /**
+     * @return mixed
+     */
+    public function get_servers_status()
+    {
+        return $this->DHCP_server->get_servers_status();
+    }
 
+    public function get_servers_config()
+    {
+        return $this->DHCP_server->get_servers_config();
+    }
 
+    /**
+     * @return mixed
+     */
+    public function write_subnet($data, $type = 'IPv4')
+    {
+        $this->DHCP_server->write_subnet($data, $type);
+    }
 
-    /* @write methods --------------- */
+    /**
+     * @param $hex
+     * @return string
+     */
+    public function DomainSearch2Text($hex)
+    {
+        $r = [];
+        for ($i = 0; $i < 60; $i++) {
+            $size = hexdec(substr($hex, $i, 2));
+            if ($size != 0) {
+                $tmp[] = hex2bin(substr($hex, $i + 2, $size * 2));
+            } else {
+                $r[] = join($tmp, ".");
+                unset($tmp);
+            }
+            $i += $size * 2 + 1;
+        }
+        return join($r, ';');
+    }
 
+    /**
+     * @param $domains
+     * @return string
+     */
+    public function Text2DomainSearch($domains)
+    {
+        $r = '';
+        foreach ($domains as $d) {
+            $words = explode('.', $d);
+            foreach ($words as $w) {
+                $r .= sprintf("%02x", strlen($w)) . bin2hex($w);
+            }
+            $r .= '00';
+        }
+        return $r;
+    }
 }
