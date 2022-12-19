@@ -37,7 +37,7 @@ if($subnet['sectionId']!=$_GET['section'])	{
 }
 
 // get usage
-$subnet_usage  = $Subnets->calculate_subnet_usage ($subnet, true);
+$subnet_usage  = $Subnets->calculate_subnet_usage ($subnet);
 
 # set title
 $location = "subnets";
@@ -77,6 +77,8 @@ if ($User->settings->enableNAT==1) {
         <!-- tabs -->
         <ul class='nav nav-tabs ip-det-switcher' style='margin-bottom:20px;'>
             <li role='presentation' <?php if(!isset($_GET['sPage'])) print " class='active'"; ?>> <a href='<?php print create_link("subnets", $subnet['sectionId'], $subnet['id']); ?>'><?php print _("Subnet details"); ?></a></li>
+            <li role='presentation' <?php if(@$_GET['sPage']=="map") print " class='active'"; ?>> <a href='<?php print create_link("subnets", $subnet['sectionId'], $subnet['id'], "map"); ?>'><?php print _("Space map"); ?></a></li>
+            <li role='presentation' <?php if(@$_GET['sPage']=="mapsearch") print " class='active'"; ?>> <a href='<?php print create_link("subnets", $subnet['sectionId'], $subnet['id'], "mapsearch"); ?>'><?php print _("Mask search"); ?></a></li>
             <?php if($User->is_admin(false)) { ?>
             <li role='presentation' <?php if(@$_GET['sPage']=="permissions") print "class='active'"; ?>><a href='<?php print create_link("subnets", $subnet['sectionId'], $subnet['id'], "permissions"); ?>'><?php print _("Permissions"); ?></a></li>
             <?php } ?>
@@ -106,7 +108,13 @@ if ($User->settings->enableNAT==1) {
         if(@$_GET['sPage']=="location") {
             include("subnet-details/subnet-location.php");
         }
-    	?>
+        if(@$_GET['sPage']=="map") {
+            include("subnet-details/subnet-map.php");
+        }
+        if(@$_GET['sPage']=="mapsearch") {
+            include("subnet-details/subnet-map-search.php");
+        }
+        ?>
 
 	</div>
 
@@ -175,5 +183,3 @@ if ($User->settings->enableNAT==1) {
 	<?php } ?>
 
 </div>
-
-

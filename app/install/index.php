@@ -11,15 +11,14 @@ $Database 	= new Database_PDO;
 $Result		= new Result;
 $Tools	    = new Tools ($Database);
 $Install 	= new Install ($Database);
+$User       = new FakeUser (false);
 
 # reset url for base
 $url = $Install->createURL ();
 
 # If User is not available create fake user object for create_link!
-if(!is_object(@$User)) {
-	$User = new StdClass ();
-	@$User->settings->prettyLinks = "No";
-	@$User->settings->theme = "dark";
+if (!isset($User)) {
+	$User = new FakeUser(false);
 }
 
 # if already installed than redirect !
@@ -67,7 +66,7 @@ if($Install->check_db_connection(false) && $Install->check_table("vrf", false)) 
 	<link rel="shortcut icon" href="css/images/favicon.png">
 
 	<!-- js -->
-	<script src="js/jquery-3.4.1.min.js?v=<?php print SCRIPT_PREFIX; ?>"></script>
+	<script src="js/jquery-3.5.1.min.js?v=<?php print SCRIPT_PREFIX; ?>"></script>
 	<script src="js/install.js?v=<?php print SCRIPT_PREFIX; ?>"></script>
 	<script src="js/bootstrap.min.js?v=<?php print SCRIPT_PREFIX; ?>"></script>
 	<script>

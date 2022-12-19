@@ -6,6 +6,10 @@
 
 # include required scripts
 require_once( dirname(__FILE__) . '/../../../functions/functions.php' );
+
+# Don't corrupt output with php errors!
+disable_php_errors();
+
 require( dirname(__FILE__) . '/../../../functions/PEAR/Spreadsheet/Excel/Writer.php');
 
 # initialize required objects
@@ -19,16 +23,16 @@ $Addresses	= new Addresses ($Database);
 # verify that user is logged in
 $User->check_user_session();
 
-# we dont need any errors!
-ini_set('display_errors', 0);
-ini_set('display_startup_errors', 0);
-error_reporting(E_ALL ^ E_NOTICE ^ E_STRICT);
-
 # fetch subnet details
-$subnet = (array) $Tools->fetch_object ("subnets", "id", $_GET['subnetId']);
+$subnet = $Tools->fetch_object("subnets", "id", $_GET['subnetId']);
+if (!is_object($subnet) || $Subnets->check_permission($User->user, $_GET['subnetId'], $subnet) == User::ACCESS_NONE) {
+	$Result->fatal_http_error(404, _("Subnet not found"));
+}
+$subnet = (array) $subnet;
+
 # fetch all IP addresses in subnet
-$addresses = $Addresses->fetch_subnet_addresses ($_GET['subnetId'], "ip_addr", "asc");
-if (!is_array($addresses)) { $addresses = array(); }
+$addresses = $Addresses->fetch_subnet_addresses ($_GET['subnetId'], "ip_addr", "asc") ? : [];
+
 # get all custom fields
 $custom_fields = $Tools->fetch_custom_fields ('ipaddresses');
 

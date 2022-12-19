@@ -28,9 +28,6 @@ if(json_last_error() !== JSON_ERROR_NONE)
 if (!isset($script_result->values->alive) || is_null($script_result->values->alive) )	{ $script_result->values->alive = array(); }
 if (!isset($script_result->values->dead)  || is_null($script_result->values->dead) )	{ $script_result->values->dead = array(); }
 
-# set address types array
-$Tools->get_addresses_types ();
-
 # if method is fping we need to check against existing hosts because it produces list of all ips !
 if ($User->settings->scanPingType=="fping" && isset($script_result->values->alive)) {
 	// fetch all hosts to be scanned
@@ -158,7 +155,7 @@ else {
 		print "</tr>";
 
 		# update ipTag
-		if ($User->settings->updateTags==1 && $Tools->address_types[$r['state']]['updateTag']==1) {
+		if ($User->settings->updateTags==1 && $Subnets->address_types[$r['state']]['updateTag']==1) {
 			// online
 			if ($r['code']==0 && $r['state']!=2) {
 				$Scan->update_address_tag ($r['id'], 2, $r['state'], date("Y-m-d H:i:s"));

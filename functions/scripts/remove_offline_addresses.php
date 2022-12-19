@@ -44,7 +44,7 @@ $query = "select
 			and `su`.`pingSubnet` = 1
 			and (`ip`.`excludePing` IS NULL or `ip`.`excludePing`!=1 )
 			and
-			(`ip`.`lastSeen` < '$beforetime' and `ip`.`lastSeen` != '0000-00-00 00:00:00' and `ip`.`lastSeen` is not NULL);";
+			(`ip`.`lastSeen` < '$beforetime' and `ip`.`lastSeen` != '1970-01-01 00:00:01' and `ip`.`lastSeen` is not NULL);";
 
 # fetch
 try { $offline_addresses = $Database->getObjectsQuery($query); }
@@ -82,7 +82,7 @@ if(sizeof($removed_addresses)>0 && $config['removed_addresses_send_mail']) {
 	if(!isset($recepients))	{ die(); }
 
 	# fake user object, needed for create_link
-	$User = new StdClass();
+	$User = new FakeUser(false);
 	# try to send
 	try {
 		# fetch mailer settings
@@ -148,7 +148,7 @@ if(sizeof($removed_addresses)>0 && $config['removed_addresses_send_mail']) {
 		$phpipam_mail->Php_mailer->AltBody = $content_plain;
 		//send
 		$phpipam_mail->Php_mailer->send();
-	} catch (phpmailerException $e) {
+	} catch (PHPMailer\PHPMailer\Exception $e) {
 		$Result->show_cli("Mailer Error: ".$e->errorMessage(), true);
 	} catch (Exception $e) {
 		$Result->show_cli("Mailer Error: ".$e->getMessage(), true);

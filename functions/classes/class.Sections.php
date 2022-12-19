@@ -9,7 +9,7 @@ class Sections extends Common_functions {
 	/**
 	 * (array of objects) to store sections, section ID is array index
 	 *
-	 * @var mixed
+	 * @var array
 	 * @access public
 	 */
 	public $sections;
@@ -19,7 +19,7 @@ class Sections extends Common_functions {
 	 *
 	 * (default value: null)
 	 *
-	 * @var mixed
+	 * @var int
 	 * @access public
 	 */
 	public $lastInsertId = null;
@@ -107,14 +107,14 @@ class Sections extends Common_functions {
 		catch (Exception $e) {
 			$this->Result->show("danger", _("Error: ").$e->getMessage(), false);
 			// write log and changelog
-			$this->Log->write( "Sections creation", "Failed to create new section<hr>".$e->getMessage()."<hr>".$this->array_to_log($this->reformat_empty_array_fields ($values, "NULL")), 2);
+			$this->Log->write( _("Sections create"), _("Failed to create new section").".<hr>".$e->getMessage()."<hr>".$this->array_to_log($this->reformat_empty_array_fields ($values, "NULL")), 2);
 			return false;
 		}
 		# save id
 		$this->lastInsertId = $this->Database->lastInsertId();
 		# ok
 		$values['id'] = $this->lastInsertId;
-		$this->Log->write( "Section created", "New section created<hr>".$this->array_to_log($this->reformat_empty_array_fields ($values, "NULL")), 0);
+		$this->Log->write( _("Sections create"), _("New section created").".<hr>".$this->array_to_log($this->reformat_empty_array_fields ($values, "NULL")), 0);
 		# write changelog
 		$this->Log->write_changelog('section', "add", 'success', array(), $values);
 		return true;
@@ -138,14 +138,14 @@ class Sections extends Common_functions {
 		try { $this->Database->updateObject("sections", $values, "id"); }
 		catch (Exception $e) {
 			$this->Result->show("danger", _("Error: ").$e->getMessage(), false);
-			$this->Log->write( "Section $old_section->name edit", "Failed to edit section $old_section->name<hr>".$e->getMessage()."<hr>".$this->array_to_log($this->reformat_empty_array_fields ($values, "NULL")), 2);
+			$this->Log->write( _("Section")." ".$old_section->name." "._("edit"), _("Failed to edit section")." ".$old_section->name.".<hr>".$e->getMessage()."<hr>".$this->array_to_log($this->reformat_empty_array_fields ($values, "NULL")), 2);
 			return false;
 		}
 
 		# write changelog
 		$this->Log->write_changelog('section', "edit", 'success', $old_section, $values);
 		# ok
-		$this->Log->write( "Section $old_section->name edit", "Section $old_section->name edited<hr>".$this->array_to_log($this->reformat_empty_array_fields ($values, "NULL")), 0);
+		$this->Log->write( _("Section")." ".$old_section->name." "._("edit"), _("Section")." ".$old_section->name." "._("edited").".<hr>".$this->array_to_log($this->reformat_empty_array_fields ($values, "NULL")), 0);
 		return true;
 	}
 
@@ -178,7 +178,7 @@ class Sections extends Common_functions {
 			# delete all sections
 			try { $this->Database->deleteRow("sections", "id", $id); }
 			catch (Exception $e) {
-				$this->Log->write( "Section $old_section->name delete", "Failed to delete section $old_section->name<hr>".$e->getMessage()."<hr>".$this->array_to_log($this->reformat_empty_array_fields ($values, "NULL")), 2);
+				$this->Log->write( _("Section")." ".$old_section->name." "._("delete"), _("Failed to delete section")." ".$old_section->name.".<hr>".$e->getMessage()."<hr>".$this->array_to_log($this->reformat_empty_array_fields ($values, "NULL")), 2);
 				$this->Result->show("danger", _("Error: ").$e->getMessage(), false);
 				return false;
 			}
@@ -187,7 +187,7 @@ class Sections extends Common_functions {
 		# write changelog
 		$this->Log->write_changelog('section', "delete", 'success', $old_section, array());
 		# log
-		$this->Log->write( "Section $old_section->name delete", "Section $old_section->name deleted<hr>".$this->array_to_log($this->reformat_empty_array_fields((array) $old_section)), 0);
+		$this->Log->write( _("Section")." ".$old_section->name." "._("delete"), _("Section")." ".$old_section->name." "._("deleted").".<hr>".$this->array_to_log($this->reformat_empty_array_fields((array) $old_section)), 0);
 		return true;
 	}
 
@@ -252,11 +252,11 @@ class Sections extends Common_functions {
 	 * fetches section by specified method
 	 *
 	 * @access public
-	 * @param string $method (default: "id")
+	 * @param string $method
 	 * @param mixed $value
 	 * @return object|bool
 	 */
-	public function fetch_section ($method = "id", $value) {
+	public function fetch_section ($method, $value) {
     	if (is_null($method))   $method = "id";
         return $this->fetch_object ("sections", $method, $value);
 	}
@@ -537,12 +537,15 @@ class Sections extends Common_functions {
 	public function print_section_subnets_table($User, $sectionId, $showSupernetOnly = false) {
 		$html = array();
 
+		# create csrf token
+		$csrf_ffss = $User->Crypto->csrf_cookie ("create-if-not-exists", "find_free_section_subnets");
+
 		# set custom fields
 		$Tools = new Tools ($this->Database);
 		$custom = $Tools->fetch_custom_fields ("subnets");
 
 		# set hidden fields
-		$hidden_fields = json_decode($User->settings->hiddenCustomFields, true);
+		$hidden_fields = json_decode($User->settings->hiddenCustomFields, true) ? : ['subnets'=>null];
 		$hidden_fields = is_array($hidden_fields['subnets']) ? $hidden_fields['subnets'] : array();
 
 		# check permission
@@ -556,7 +559,7 @@ class Sections extends Common_functions {
 			if ($permission>1) {
 				$html[] = "<div class='btn-group'>";
 				$html[] = '<button class="btn btn-sm btn-default btn-success editSubnet" data-action="add" data-sectionid="'.$sectionId.'" data-subnetId="" rel="tooltip" data-placement="left" title="'._('Add new subnet to section').'"><i class="fa fa-plus"></i> '._('Add subnet').'</button>';
-				$html[] = "<button class='btn btn-sm btn-default btn-success open_popup' data-script='app/admin/subnets/find_free_section_subnets.php'  data-class='700' rel='tooltip' data-container='body'  data-placement='top' title='"._('Search for free subnets in section ')."'  data-sectionId='$sectionId'><i class='fa fa-sm fa-search'></i> "._("Find subnet")."</button>";
+				$html[] = "<button class='btn btn-sm btn-default btn-success open_popup' data-script='app/admin/subnets/find_free_section_subnets.php' data-csrf_cookie='$csrf_ffss' data-class='700' rel='tooltip' data-container='body'  data-placement='top' title='"._('Search for free subnets in section ')."'  data-sectionId='$sectionId'><i class='fa fa-sm fa-search'></i> "._("Find subnet")."</button>";
 				$html[] = "</div>";
 			}
 

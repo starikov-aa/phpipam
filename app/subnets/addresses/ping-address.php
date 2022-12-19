@@ -21,8 +21,6 @@ $User->check_user_session();
 # check maintaneance mode
 $User->check_maintaneance_mode (true);
 
-# set address types array
-$Tools->get_addresses_types ();
 // set tagChange
 $tagChange = false;
 
@@ -52,7 +50,7 @@ $pingRes = $Ping->ping_address($address['ip']);
 if($pingRes==0 && is_numeric($_POST['id'])) { @$Ping->ping_update_lastseen($address['id']); }
 
 # update ipTag
-if ($Ping->settings->updateTags==1 && $Tools->address_types[$address['state']]['updateTag']==1) {
+if ($Ping->settings->updateTags==1 && $Subnets->address_types[$address['state']]['updateTag']==1) {
 	// online
 	if ($pingRes==0 && $address['state']!=2) {
 		if($Ping->update_address_tag ($address['id'], 2, $address['state'], date("Y-m-d H:i:s"))) {

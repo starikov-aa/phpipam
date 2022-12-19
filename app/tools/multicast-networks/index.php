@@ -14,7 +14,7 @@ $subnets = $Subnets->fetch_multicast_subnets();
 $custom_fields = $Tools->fetch_custom_fields('subnets');
 
 # set hidden fields
-$hidden_cfields = json_decode($User->settings->hiddenCustomFields, true);
+$hidden_cfields = json_decode($User->settings->hiddenCustomFields, true) ? : ['subnets'=>null];
 $hidden_cfields = is_array($hidden_cfields['subnets']) ? $hidden_cfields['subnets'] : array();
 
 # set selected address fields array
@@ -134,11 +134,11 @@ if ($subnets!==false) {
 					    //calculate
 					    $tDiff = time() - strtotime($address->lastSeen);
 					    if($address->excludePing=="1" ) { $hStatus = "padded"; $hTooltip = ""; }
+					    elseif($address->lastSeen == "0000-00-00 00:00:00") { $hStatus = "neutral"; 	$hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Device is offline")."<hr>"._("Last seen").": "._("Never")."'";}
+					    elseif($address->lastSeen == "1970-01-01 00:00:01") { $hStatus = "neutral"; 	$hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Device is offline")."<hr>"._("Last seen").": "._("Never")."'";}
 					    elseif($tDiff < $statuses[0])	{ $hStatus = "success";	$hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Device is alive")."<hr>"._("Last seen").": ".$address->lastSeen."'"; }
 					    elseif($tDiff < $statuses[1])	{ $hStatus = "warning"; $hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Device warning")."<hr>"._("Last seen").": ".$address->lastSeen."'"; }
 					    elseif($tDiff < 2592000)		{ $hStatus = "error"; 	$hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Device is offline")."<hr>"._("Last seen").": ".$address->lastSeen."'";}
-					    elseif($address->lastSeen == "0000-00-00 00:00:00") { $hStatus = "neutral"; 	$hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Device is offline")."<hr>"._("Last seen").": "._("Never")."'";}
-					    elseif($address->lastSeen == "1970-01-01 00:00:01") { $hStatus = "neutral"; 	$hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Device is offline")."<hr>"._("Last seen").": "._("Never")."'";}
 					    else							{ $hStatus = "neutral"; $hTooltip = "rel='tooltip' data-container='body' data-html='true' data-placement='left' title='"._("Device status unknown")."'";}
 				    }
 				    else {
@@ -197,7 +197,7 @@ if ($subnets!==false) {
 
 		       		# print info button for hover
 		       		if(in_array('note', $selected_ip_fields)) {
-		        		if(!empty($address->note)) 					{ print "<td class='narrow'><i class='fa fa-gray fa-comment-o' rel='tooltip' data-container='body' data-html='true' title='".str_replace("\n", "<br>",$address->note)."'></td>"; }
+		        		if(!empty($address->note)) 					{ print "<td class='narrow'><i class='fa fa-gray fa-comment-o' rel='tooltip' data-container='body' data-html='true' title='".str_replace("\n", "<br>",$address->note)."'></i></td>"; }
 		        		else 										{ print "<td class='narrow'></td>"; }
 		        	}
 
@@ -251,7 +251,7 @@ if ($subnets!==false) {
 						print "<a class='ping_ipaddress   btn btn-xs btn-default' data-subnetId='".$address->subnetId."' data-id='".$address->id."' href='#' rel='tooltip' data-container='body' title='"._('Check availability')."'>					<i class='fa fa-gray fa-cogs'></i></a>";
 						print "<a class='search_ipaddress btn btn-xs btn-default         "; if(strlen($resolve['name']) == 0) { print "disabled"; } print "' href='".create_link("tools","search",$resolve['name'])."' "; if(strlen($resolve['name']) != 0)   { print "rel='tooltip' data-container='body' title='"._('Search same hostnames in db')."'"; } print ">	<i class='fa fa-gray fa-search'></i></a>";
 						print "<a class='mail_ipaddress   btn btn-xs btn-default          ' href='#' data-id='".$address->id."' rel='tooltip' data-container='body' title='"._('Send mail notification')."'>																																		<i class='fa fa-gray fa-envelope-o'></i></a>";
-						if(in_array('firewallAddressObject', $selected_ip_fields)) { if($zone) { print "<a class='fw_autogen	   	  btn btn-default btn-xs          ' href='#' data-subnetid='".$address->subnetId."' data-action='adr' data-ipid='".$address->id."' data-dnsname='".$address->hostname."' rel='tooltip' data-container='body' title='"._('Gegenerate or regenerate a firewall addres object of this ip address.')."'><i class='fa fa-gray fa-repeat'></i></a>"; }}
+						if(in_array('firewallAddressObject', $selected_ip_fields)) { if($zone) { print "<a class='fw_autogen	   	  btn btn-default btn-xs          ' href='#' data-subnetid='".$address->subnetId."' data-action='adr' data-ipid='".$address->id."' data-dnsname='".$address->hostname."' rel='tooltip' data-container='body' title='"._('Generate or regenerate a firewall address object of this ip address.')."'><i class='fa fa-gray fa-repeat'></i></a>"; }}
 						print "<a class='delete_ipaddress btn btn-xs btn-default modIPaddr' data-action='delete' data-subnetId='".$address->subnetId."' data-id='".$address->id."' href='#' id2='".$Subnets->transform_to_dotted($address->ip_addr)."'>		<i class='fa fa-gray fa-times'>  </i></a>";
     				}
     				# write not permitted

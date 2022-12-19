@@ -20,7 +20,7 @@ if($User->is_admin(false)) {
 	# print admin items
 	foreach($admin_menu as $k=>$item) {
 		# header
-		print "<li class='nav-header'>"._($k)."</li>";
+		print "<li class='nav-header'>".$k."</li>";
 		# items
 		foreach($item as $i) {
 			# only selected
@@ -31,7 +31,7 @@ if($User->is_admin(false)) {
 				} else {
 					$active = "";
 				}
-				print "<li class='$active'><a href='".create_link("administration",$i['href'])."'>"._($i['name'])."</a></li>";
+				print "<li class='$active'><a href='".create_link("administration",$i['href'])."'>".$i['name']."</a></li>";
 			}
 		}
 	}
@@ -59,7 +59,7 @@ if($User->is_admin(false)) {
 			$m=0;
 			foreach($tools_menu as $k=>$item) {
 				# header
-				print "<li class='nav-header'>"._($k)."</li>";
+				print "<li class='nav-header'>".$k."</li>";
 				# items
 				foreach($item as $i) {
 					# only active
@@ -70,7 +70,7 @@ if($User->is_admin(false)) {
 						} else {
 							$active = "";
 						}
-						print "<li class='$active'><a href='".create_link("tools",$i['href'])."'>"._($i['name'])."</a></li>";
+						print "<li class='$active'><a href='".create_link("tools",$i['href'])."'>".$i['name']."</a></li>";
 					}
 				}
 			}
@@ -125,7 +125,7 @@ if($User->is_admin(false)) {
 			# print tools items
 			foreach($tools_menu as $k=>$item) {
 				# header
-				print "<li class='nav-header'>"._($k)."</li>";
+				print "<li class='nav-header'>".$k."</li>";
 				# items
 				foreach($item as $i) {
 					# only selected
@@ -136,7 +136,7 @@ if($User->is_admin(false)) {
 						} else {
 							$active = "";
 						}
-						print "<li class='$active'><a href='".create_link("tools",$i['href'])."'>"._($i['name'])."</a></li>";
+						print "<li class='$active'><a href='".create_link("tools",$i['href'])."'>".$i['name']."</a></li>";
 					}
 				}
 			}
@@ -181,7 +181,7 @@ if($User->is_admin(false)) {
 			$Tools->update_phpipam_checktime ();
 		} else {
 			# new version available
-			if ($User->settings->version < $version) {
+			if ($Tools->cmp_version_strings(VERSION_VISIBLE, $version) < 0) {
 				print "<li>";
 				print "	<a href='".create_link("administration","version-check")."' class='icon-li btn-warning' rel='tooltip' data-placement='bottom' title='"._('New version available')."'><i class='fa fa-bullhorn'></i><sup>$version</sup></a>";
 				print "</li>";
@@ -190,6 +190,12 @@ if($User->is_admin(false)) {
 				$Tools->update_phpipam_checktime ();
 			}
 		}
+	}
+
+	if ($User->is_admin(false) && $Tools->cmp_version_strings(VERSION, $User->settings->version) != 0) {
+		print "<li>";
+		print "	<a href='".create_link("administration","version-check")."' class='icon-li btn-danger' rel='tooltip' data-placement='bottom' title='"._("Incompatible php and database schema versions")."'><i class='fa fa-bullhorn'></i><sup>".$User->settings->version."</sup></a>";
+		print "</li>";
 	}
 	?>
 
