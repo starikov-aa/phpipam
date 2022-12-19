@@ -14,10 +14,11 @@ function calculateCidrRange(cidr) {
 }
 
 function inSubNet(ip, subnet) {
-    var mask, base_ip, long_ip = ip2long(ip);
-    if ((mask = subnet.match(/^(.*?)\/(\d{1,2})$/)) && ((base_ip = intToIp4(mask[1])) >= 0)) {
-        var freedom = Math.pow(2, 32 - parseInt(mask[2]));
+    let mask, base_ip, long_ip = ip4ToInt(ip);
+    if ((mask = subnet.match(/^(.*?)\/(\d{1,2})$/)) && ((base_ip = ip4ToInt(mask[1])) >= 0)) {
+        let freedom = Math.pow(2, 32 - parseInt(mask[2]));
         return (long_ip > base_ip || long_ip === base_ip) && ((long_ip < base_ip + freedom - 1) || (long_ip === base_ip + freedom - 1));
+        // return (long_ip > base_ip) && (long_ip < base_ip + freedom - 1);
     } else return false;
 }
 
@@ -38,4 +39,59 @@ function compareSubnet(subnetA, subnetB) {
             return 0;
         }
     }
+}
+
+/**
+ * MAC address validation
+ *
+ * @param address MAC
+ * @returns {boolean} True is valid otherwise false
+ */
+function validateMacAddress(address) {
+    let regex = /^([0-9A-F]{2}[:-]){5}([0-9A-F]{2})$/i;
+    return regex.test(address);
+}
+
+/**
+ * Bouncer custom validate
+ * Checks an IP or pool (start ip - end ip) to the selected subnet (CIDR).
+ * For the field in which the IP or pool is indicated, two attributes must be set:
+ * data-valid-inSubNet-type, values:
+ * - pool - if a pool of addresses is specified
+ * - ip - if the field contains one address
+ * data-valid-inSubNet-network - a field selector with a subnet must be specified as a value, for example ID - #subnet
+ *
+ * @param field Check field
+ * @returns {boolean} False is valid otherwise true
+ */
+function validateFuncInSubNet(field) {
+    let type = field.getAttribute('data-valid-inSubNet-type');
+    let selector = field.getAttribute('data-valid-inSubNet-network');
+    if (!selector || !type) return false;
+
+    let network = document.querySelector(selector);
+    if (!network) return false;
+
+    network = network.selectedOptions[0].text.match(/^(.*\/\d{1,2})/)[1]
+
+    if (field.value === '' && !field.required) {
+        return false;
+    } else if (type == 'ip') {
+        return !inSubNet(field.value, network);
+    } else if (type == 'pool') {
+        let pool = field.value.split('-');
+        return !(inSubNet(pool[0], network) && inSubNet(pool[1], network));
+    }
+
+    return true;
+}
+
+/**
+ * Bouncer custom message for validateFuncInSubNet()
+ *
+ * @param field Check field
+ * @returns {string} The message text
+ */
+function validateMsgInSubNet(field) {
+    return 'The specified IP or pool is not included in the selected subnet';
 }

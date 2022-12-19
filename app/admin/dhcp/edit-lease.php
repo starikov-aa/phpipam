@@ -86,6 +86,24 @@ $_mac = isset($leaseInfo['hw-address']) ? $leaseInfo['hw-address'] : $reservatio
         }
     })
 
+    let validate = new Bouncer('#editReservation', {
+        customValidations: {
+            inSubNet: field => validateFuncInSubNet(field)
+        },
+        messages: {
+            inSubNet: field => validateMsgInSubNet(field)
+        }
+    });
+
+
+    $("#editLease").on("click", function (e) {
+        let errCount = validate.validateAll($('#editReservation')[0]);
+        if (errCount.length > 0) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    });
+
 </script>
 
 <!-- header -->
@@ -94,7 +112,7 @@ $_mac = isset($leaseInfo['hw-address']) ? $leaseInfo['hw-address'] : $reservatio
 <!-- content -->
 <div class="pContent">
 
-    <form id="editReservation" name="editReservation">
+    <form id="editReservation" name="editReservation" data-toggle="validator" role="form">
         <table class="table table-noborder table-condensed">
 
             <!-- IP -->
@@ -102,7 +120,8 @@ $_mac = isset($leaseInfo['hw-address']) ? $leaseInfo['hw-address'] : $reservatio
                 <td style="width:120px;"><?php print _('IP'); ?></td>
                 <td>
                     <input type="text" id="ip_addr" name="ip_addr"
-                           class="form-control input-sm readonly-inp-without-static" value="<?php print $_ip; ?>">
+                           class="input-sm readonly-inp-without-static" value="<?php print $_ip; ?>"
+                           data-valid-inSubNet-type="ip" data-valid-inSubNet-network="#subnet_id" required>
                     <input type="hidden" name="action" value="<?php print $_POST['action']; ?>">
                     <input type="hidden" name="csrf_cookie" value="<?php print $csrf; ?>">
                 </td>
@@ -113,7 +132,8 @@ $_mac = isset($leaseInfo['hw-address']) ? $leaseInfo['hw-address'] : $reservatio
                 <td style="white-space: nowrap;"><?php print _('Mac'); ?></td>
                 <td>
                     <input type="text" id="hwaddr" name="hwaddr"
-                           class="form-control input-sm readonly-inp-without-static" value="<?php print $_mac; ?>">
+                           class="input-sm readonly-inp-without-static" value="<?php print $_mac; ?>"
+                           data-error="Invalid MAC address" pattern="([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})" required>
                 </td>
             </tr>
             <!-- Make static -->
@@ -126,7 +146,7 @@ $_mac = isset($leaseInfo['hw-address']) ? $leaseInfo['hw-address'] : $reservatio
             <tr class="staticonly">
                 <td style="white-space: nowrap;"><?php print _('Subnet'); ?></td>
                 <td>
-                    <select name="subnet_id" class="form-control input-sm input-w-auto">
+                    <select id="subnet_id" name="subnet_id" class="form-control input-sm input-w-auto" required>
                         <?php
                         $cur_sub_id = $reservationInfo ? $reservationInfo["subnet-id"] : $ip_subnet_info->id;
                         foreach ($subnets4 as $s) {

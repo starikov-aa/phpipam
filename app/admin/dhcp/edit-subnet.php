@@ -68,6 +68,23 @@ foreach ($ipamSubnets as $jis) {
         $('#pools').val(pool[0] + '-' + pool[1]);
     })
 
+    let validate = new Bouncer('#editSubnetDhcp', {
+        customValidations: {
+            inSubNet: field => validateFuncInSubNet(field)
+        },
+        messages: {
+            inSubNet: field => validateMsgInSubNet(field)
+        }
+    });
+
+    $("#editSubnet").on("click", function (e) {
+        let errCount = validate.validateAll($('#editSubnetDhcp')[0]);
+        if (errCount.length > 0) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    });
+
 </script>
 
 <!-- header -->
@@ -75,7 +92,7 @@ foreach ($ipamSubnets as $jis) {
 
 <!-- content -->
 <div class="pContent">
-    <form id="editSubnet" name="editSubnet">
+    <form id="editSubnetDhcp" name="editSubnetDhcp">
         <table class="table table-noborder table-condensed">
             <!-- ID -->
             <tr>
@@ -96,7 +113,8 @@ foreach ($ipamSubnets as $jis) {
                 <td style="white-space: nowrap;"><?php print _('Pools'); ?></td>
                 <td>
                     <input type="text" id="pools" name="s[pools][][pool]" class="form-control input-sm"
-                           value="<?php print $curSubnet['pools'][0]['pool']; ?>">
+                           value="<?php print $curSubnet['pools'][0]['pool']; ?>"
+                           data-valid-inSubNet-type="pool" data-valid-inSubNet-network="#subnet-list" required>
                     <small id="passwordHelpBlock" class="form-text text-muted">
                         Format: StartIP-EndIP. e.g.: 192.168.0.0-192.168.0.254
                     </small>
@@ -121,18 +139,20 @@ foreach ($ipamSubnets as $jis) {
                 </td>
             </tr>
             <!-- Default dns servers -->
-<!--            <tr>-->
-<!--                <td style="white-space: nowrap;">--><?php //print _('Use default dns servers'); ?><!--</td>-->
-<!--                <td>-->
-<!--                    <input type="checkbox" name="default-dns" id="default-dns" checked>-->
-<!--                </td>-->
-<!--            </tr>-->
+            <!--            <tr>-->
+            <!--                <td style="white-space: nowrap;">-->
+            <?php //print _('Use default dns servers'); ?><!--</td>-->
+            <!--                <td>-->
+            <!--                    <input type="checkbox" name="default-dns" id="default-dns" checked>-->
+            <!--                </td>-->
+            <!--            </tr>-->
             <!-- Router -->
             <tr>
                 <td style="white-space: nowrap;"><?php print _('Gateway'); ?></td>
                 <td>
                     <input type="text" id="routers" name="s[option-data][routers]" class="form-control input-sm"
-                           value="<?php print $routerAddr; ?>">
+                           value="<?php print $routerAddr; ?>" data-valid-inSubNet-type="ip"
+                           data-valid-inSubNet-network="#subnet-list">
                 </td>
             </tr>
             <!-- Relay -->
@@ -140,15 +160,15 @@ foreach ($ipamSubnets as $jis) {
                 <td style="white-space: nowrap;"><?php print _('Relay'); ?></td>
                 <td>
                     <input type="text" id="relay" name="s[relay]" class="form-control input-sm"
-                           value="<?php print $curSubnet['relay']['ip-addresses'][0]; ?>">
+                           value="<?php print $curSubnet['relay']['ip-addresses'][0]; ?>" pattern="(\d{1,3}.){3}\d{1,3}">
                 </td>
             </tr>
             <!-- Valid Life Time -->
             <tr>
                 <td style="white-space: nowrap;"><?php print _('Life Time (seconds)'); ?></td>
                 <td>
-                    <input type="text" id="valid-lifetime" name="s[valid-lifetime]" class="form-control input-sm"
-                           value="<?php print $curSubnet['valid-lifetime']; ?>">
+                    <input type="number" id="valid-lifetime" name="s[valid-lifetime]" class="form-control input-sm"
+                           value="<?php print $curSubnet['valid-lifetime']; ?>" min="3600" required>
                 </td>
             </tr>
             <!-- Next server -->
@@ -173,7 +193,7 @@ foreach ($ipamSubnets as $jis) {
     <div class="btn-group">
         <button class="btn btn-sm btn-default hidePopups"><?php print _('Cancel'); ?></button>
         <button class="btn btn-sm btn-default submit_popup readonly-without-static <?php print $_POST['action'] == "delete" ? "btn-danger" : "btn-success"; ?>"
-                id="editSubnet" data-script='app/admin/dhcp/edit-subnet-submit.php' data-form='editSubnet'
+                id="editSubnet" data-script='app/admin/dhcp/edit-subnet-submit.php' data-form='editSubnetDhcp'
                 data-result_div="editSubnetResult"><i
                     class="fa <?php print $_POST['action'] == "delete" ? "fa-trash-o" : "fa-check"; ?>"></i> <?php print ucwords(_($_POST['action'])); ?>
         </button>
