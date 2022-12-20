@@ -76,9 +76,9 @@ function validateFuncInSubNet(field) {
 
     if (field.value === '' && !field.required) {
         return false;
-    } else if (type == 'ip') {
+    } else if (type === 'ip' && /^(\d{1,3}.){3}\d{1,3}$/.test(field.value)) {
         return !inSubNet(field.value, network);
-    } else if (type == 'pool') {
+    } else if (type === 'pool' && /^(\d{1,3}.){3}\d{1,3}-(\d{1,3}.){3}\d{1,3}$/.test(field.value)) {
         let pool = field.value.split('-');
         return !(inSubNet(pool[0], network) && inSubNet(pool[1], network));
     }
