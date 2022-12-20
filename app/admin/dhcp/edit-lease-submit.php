@@ -10,6 +10,7 @@ $Admin = new Admin ($Database);
 $Subnets = new Subnets ($Database);
 $Addresses = new Addresses ($Database);
 $Result = new Result ();
+$Log = new Logging ($Database, $User->settings);
 
 # verify that user is logged in
 $User->check_user_session();
@@ -18,6 +19,9 @@ $User->check_maintaneance_mode();
 
 # strip input tags
 $_POST = $Admin->strip_input_tags($_POST);
+
+$ip_address = $_POST['ip_addr'];
+$mac_address = $_POST['hwaddr'];
 
 $dhcp = new DHCP('kea');
 $reservation = $dhcp->read_reservations("IPv4");
@@ -56,7 +60,9 @@ if ($_POST['action'] == 'edit' || $_POST['action'] == 'add') {
 //    if (!isset($reservation[$_POST['ip_addr']]) && $hwaddrs !== false) {
     try {
         $dhcp->write_reservation($_POST['ip_addr'], $_POST['hwaddr'], $_POST['subnet_id'], $reservationAdditionSettings);
+        $Log->write( _("Lease edited"), _("IP: {$ip_address}, MAC: {$mac_address}"), 0);
     } catch (Throwable $e) {
+        $Log->write( _("Lease save error"), _("IP: {$ip_address}, MAC: {$mac_address},\r\nError:" . _($e->getMessage())), 2);
         $Result->show("danger", _($e->getMessage()), true);
     }
 //    }

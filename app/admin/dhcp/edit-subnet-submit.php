@@ -10,6 +10,7 @@ $Admin = new Admin ($Database);
 $Subnets = new Subnets ($Database);
 $Result = new Result ();
 $common = new Common_functions();
+$Log = new Logging ($Database, $User->settings);
 
 # verify that user is logged in
 $User->check_user_session();
@@ -68,7 +69,9 @@ if ($_POST['action'] == 'edit' || $_POST['action'] == 'add') {
 
     try {
         $dhcp->write_subnet($curSubnet, $ipType);
+        $Log->write( _("Subnet edited"), _("Subnet: {$curSubnet['subnet']}"), 0);
     } catch (Throwable $e) {
+        $Log->write( _("Subnet save error"), _("Subnet: {$curSubnet['subnet']},\r\nError:" . _($e->getMessage())), 2);
         $Result->show("danger", _($e->getMessage()), true);
     }
 } elseif ($_POST['action'] == 'delete') {
