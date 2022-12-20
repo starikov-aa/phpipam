@@ -32,7 +32,7 @@ function print_subnets($s, $isManagement)
 
     $html[] = "<tr>";
     $html[] = " <td>" . $s['id'] . "</td>";
-    $html[] = " <td><a href='/index.php?page=subnets&section=" . $ipamSubnet->sectionId .
+    $html[] = " <td><a href='index.php?page=subnets&section=" . $ipamSubnet->sectionId .
         "&subnetId=" . $s['id'] . "'>" . $ipamSubnet->description . "</a></td>";
     // subnet
     $html[] = " <td>" . $s['subnet'] . "</td>";
