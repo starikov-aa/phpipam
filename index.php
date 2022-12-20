@@ -128,8 +128,11 @@ else {
 		<?php }	?>
 		<!-- jQuery UI -->
 		<script src="js/jquery-ui-1.12.1.custom.min.js?v=<?php print SCRIPT_PREFIX; ?>"></script>
+
+        <!--   CUSTOM DHCP   -->
         <script src="js/dhcp.js?v=<?php print SCRIPT_PREFIX; ?>"></script>
         <script src="js/bouncer.polyfills.min.js?v=<?php print SCRIPT_PREFIX; ?>"></script>
+        <link rel="stylesheet" href="css/dhcp.css?v=<?php print SCRIPT_PREFIX; ?>"/>
 
 	</head>
 

@@ -69,6 +69,8 @@ foreach ($ipamSubnets as $jis) {
     })
 
     let validate = new Bouncer('#editSubnetDhcp', {
+        fieldClass: 'valid-error',
+        errorClass: 'valid-error-message',
         customValidations: {
             inSubNet: field => validateFuncInSubNet(field)
         },
