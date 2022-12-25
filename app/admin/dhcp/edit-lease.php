@@ -86,9 +86,9 @@ $_mac = isset($leaseInfo['hw-address']) ? $leaseInfo['hw-address'] : $reservatio
         }
     })
 
-    let validate = new Bouncer('#editReservation', {
+    var validate = new Bouncer('#editReservation', {
         fieldClass: 'valid-error',
-        errorClass: 'valid-error-message',
+        errorClass: getBouncerErrorClass(),
         customValidations: {
             inSubNet: field => validateFuncInSubNet(field)
         },

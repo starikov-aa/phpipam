@@ -95,3 +95,21 @@ function validateFuncInSubNet(field) {
 function validateMsgInSubNet(field) {
     return 'The specified IP or pool is not included in the selected subnet';
 }
+
+/**
+ * Checks which theme is used
+ *
+ * @returns {boolean} True - dark, false - white
+ */
+function isCurrentThemeDark(){
+    return /bg-light/.test($('body').css('background'));
+}
+
+/**
+ * Returns the name of the class for the Bouncer depending on the current theme of the site
+ *
+ * @returns {string}
+ */
+function getBouncerErrorClass() {
+    return isCurrentThemeDark() ? 'valid-error-message_dark' : 'valid-error-message_white';
+}

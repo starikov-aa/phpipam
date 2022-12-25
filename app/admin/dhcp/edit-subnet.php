@@ -68,9 +68,9 @@ foreach ($ipamSubnets as $jis) {
         $('#pools').val(pool[0] + '-' + pool[1]);
     })
 
-    let validate = new Bouncer('#editSubnetDhcp', {
+    var validate = new Bouncer('#editSubnetDhcp', {
         fieldClass: 'valid-error',
-        errorClass: 'valid-error-message',
+        errorClass: getBouncerErrorClass(),
         customValidations: {
             inSubNet: field => validateFuncInSubNet(field)
         },

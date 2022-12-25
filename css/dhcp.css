@@ -1,6 +1,10 @@
 /**
 * Form Validation Errors
 */
-.valid-error-message {
+.valid-error-message_dark {
     color: #f7ff00;
+}
+
+.valid-error-message_white {
+    color: red;
 }
