@@ -21,15 +21,18 @@ $reservation6 = $DHCP->read_reservations("IPv6");
 $subnets4 = $DHCP->read_subnets("IPv4", "id");
 $subnets6 = $DHCP->read_subnets("IPv6");
 
+$common_func = new Common_functions();
+
 // get information for all IP
 $AllIP = [];
 foreach ($Subnets->fetch_all_subnets() as $sub) {
     $ips = $Addresses->fetch_subnet_addresses($sub->id, null, null, ['ip_addr', 'description', 'hostname']);
     foreach ($ips as $ip) {
-        $AllIP[$ip->ip] = (array)$ip;
-        $AllIP[$ip->ip]['subnet']['description'] = $sub->description;
-        $AllIP[$ip->ip]['subnet']['id'] = $sub->id;
-        $AllIP[$ip->ip]['subnet']['sectionId'] = $sub->sectionId;
+        $ip_addr = $common_func->transform_to_dotted($ip->ip_addr);
+        $AllIP[$ip_addr] = (array)$ip;
+        $AllIP[$ip_addr]['subnet']['description'] = $sub->description;
+        $AllIP[$ip_addr]['subnet']['id'] = $sub->id;
+        $AllIP[$ip_addr]['subnet']['sectionId'] = $sub->sectionId;
     }
 }
 
