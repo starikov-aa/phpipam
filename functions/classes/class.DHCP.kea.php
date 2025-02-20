@@ -1,5 +1,6 @@
 <?php
 
+
 /**
  * DHCP_kea class to work with isc-dhcp server
  *
@@ -9,8 +10,7 @@
  *
  *
  */
-class DHCP_kea extends Common_functions
-{
+class DHCP_kea extends Common_functions {
 
     /**
      * Location of kea config file
@@ -147,9 +147,6 @@ class DHCP_kea extends Common_functions
      * @access public
      */
     public $reservations4 = array();
-    /**
-     * @var array
-     */
     public $reservations6 = array();
 
     /**
@@ -163,15 +160,6 @@ class DHCP_kea extends Common_functions
     protected $Database_kea = false;
 
 
-    /**
-     * The address of the server from which data will be taken (liza, reservation).
-     * By default, this is a server with the "primary" role.
-     *
-     * @var string
-     */
-    private $ApiReadServer = "";
-
-    private $LogFile = '';
 
     /**
      * __construct function.
@@ -180,31 +168,25 @@ class DHCP_kea extends Common_functions
      * @param array $kea_settings (default: array())
      * @return void
      */
-    public function __construct($kea_settings = array())
-    {
-
+    public function __construct($kea_settings = array()) {
         $this->LogFile = $_SERVER['DOCUMENT_ROOT'] . "/kea_dhcp.log";
 
         // save settings
-        if (is_array($kea_settings)) {
-            $this->kea_settings = $kea_settings;
-        } else {
-            throw new exception ("Invalid kea settings");
-        }
+        if (is_array($kea_settings))            { $this->kea_settings = $kea_settings; }
+        else                                    { throw new exception ("Invalid kea settings"); }
 
         // set file
-        if (isset($this->kea_settings['file'])) {
-            $this->kea_config_file = $this->kea_settings['file'];
-        }
+        if (isset($this->kea_settings['file'])) { $this->kea_config_file = $this->kea_settings['file']; }
+
+        // parse config file on startup
+        $this->parse_config ();
+        // parse and save subnets
+        $this->parse_subnets ();
+
         $rs = $this->get_server('all', $addr_only = true);
         if ($rs) {
             $this->ApiReadServer = $rs;
         }
-
-        // parse config file on startup
-        $this->parse_config();
-        // parse and save subnets
-        $this->parse_subnets();
     }
 
     /**
@@ -219,11 +201,14 @@ class DHCP_kea extends Common_functions
      * @param mixed $charset
      * @return void
      */
-    private function init_database_conection($username, $password, $host, $port, $dbname)
-    {
+    private function init_database_conection ($username, $password, $host, $port, $dbname) {
         // open
         $this->Database_kea = new Database_PDO ($username, $password, $host, $port, $dbname);
     }
+
+
+
+
 
 
     /**
@@ -232,23 +217,23 @@ class DHCP_kea extends Common_functions
      * @access private
      * @return void
      */
-    private function parse_config_file()
-    {
+    private function parse_config_file () {
         // get file to array
-        if (file_exists($this->kea_config_file)) {
+        if(file_exists($this->kea_config_file)) {
             $config = file($this->kea_config_file);
             // save
-            $this->config_raw = implode("\n", array_filter($config));
-        } else {
-            throw new exception ("Cannot access config file " . $this->kea_config_file);
+            $this->config_raw = implode("\n",array_filter($config));
+        }
+        else {
+            throw new exception ("Cannot access config file ".$this->kea_config_file);
         }
 
-        // loop and remove comments (contains #) and replace multilpe spaces
-        $out = array();
-        foreach ($config as $k => $f) {
-            if (strpos($f, "#") !== false || strlen($f) == 0) {
-            } else {
-                if (strlen($f) > 0) {
+        // loop and remove comments (contains #) and replace multiple spaces
+        $out   = array();
+        foreach ($config as $k=>$f) {
+            if (strpos($f, "#")!==false || is_blank($f)) {}
+            else {
+                if(!is_blank($f)) {
                     $out[] = $f;
                 }
             }
@@ -258,19 +243,15 @@ class DHCP_kea extends Common_functions
         $config = implode("", $out);
 
         // validate json
-        if ($this->validate_json_string($config) === false) {
+        if ($this->validate_json_string ($config)===false) {
             throw new exception ("JSON config file error: $this->json_error");
         }
 
         // save config
-        $this->config = json_decode($config, true);
+        $this->config = db_json_decode($config, true);
         // save IPv4 / IPv6 flags
-        if (isset($this->config['Dhcp4'])) {
-            $this->ipv4_used = true;
-        }
-        if (isset($this->config['Dhcp6'])) {
-            $this->ipv6_used = true;
-        }
+        if(isset($this->config['Dhcp4']))   { $this->ipv4_used = true; }
+        if(isset($this->config['Dhcp6']))   { $this->ipv6_used = true; }
     }
 
     /**
@@ -279,8 +260,7 @@ class DHCP_kea extends Common_functions
      * @access private
      * @return void
      */
-    private function parse_subnets()
-    {
+    private function parse_subnets () {
         // save to subnets4 object
         $this->subnets4 = @$this->config['Dhcp4']['subnet4'];
         // save to subnets6 object
@@ -304,12 +284,12 @@ class DHCP_kea extends Common_functions
      * @param string $type (default: "IPv4")
      * @return void
      */
-    public function get_leases2($type = "IPv4")
-    {
+    public function get_leases2 ($type = "IPv4") {
         // first check where they are stored - mysql, postgres or file
-        if ($type == "IPv4") {
+        if ($type=="IPv4") {
             $lease_database = $this->config['Dhcp4']['lease-database'];
-        } else {
+        }
+        else {
             $lease_database = $this->config['Dhcp6']['lease-database'];
         }
 
@@ -322,7 +302,7 @@ class DHCP_kea extends Common_functions
         }
 
         // get leases
-        $lease_type = "get_leases_" . $lease_database_type;
+        $lease_type = "get_leases_".$lease_database_type;
         $this->{$lease_type} ($lease_database, $type);
     }
 
@@ -337,21 +317,20 @@ class DHCP_kea extends Common_functions
      * @param string $type (default: "IPv4")
      * @return void
      */
-    private function get_leases_memfile($lease_database, $type)
-    {
+    private function get_leases_memfile ($lease_database, $type) {
         // read file to array
         $leases_from_file = @file($lease_database['name']);
         // first item are titles
         unset($leases_from_file[0]);
         // if leases are present format to array
-        if (sizeof($leases_from_file) > 0 && $leases_from_file !== false) {
+        if (sizeof($leases_from_file)>0 && $leases_from_file!==false) {
             // init array
             $leases_parsed = array();
             // loop and save leases
             foreach ($leases_from_file as $l) {
-                if (strlen($l) > 1) {
+                if(strlen($l)>1) {
                     // to array
-                    $l = explode(",", $l);
+                    $l = pf_explode(",", $l);
 
                     // set state
                     switch ($l[9]) {
@@ -382,16 +361,14 @@ class DHCP_kea extends Common_functions
                     }
                 }
             }
-        } else {
-            throw new exception("Cannot read leases file " . $lease_database['name']);
+        }
+        else {
+            throw new exception("Cannot read leases file ".$lease_database['name']);
         }
 
         // save result
-        if ($type == "IPv4") {
-            $this->leases4 = $leases_parsed;
-        } else {
-            $this->leases6 = $leases_parsed;
-        }
+        if ($type=="IPv4")  { $this->leases4 = $leases_parsed; }
+        else                { $this->leases6 = $leases_parsed; }
     }
 
     /**
@@ -402,41 +379,39 @@ class DHCP_kea extends Common_functions
      * @param string $type (default: "IPv4")
      * @return void
      */
-    private function get_leases_mysql($lease_database, $type)
-    {
+    private function get_leases_mysql ($lease_database, $type) {
         // if host not specified assume localhost
-        if (strlen($lease_database['host']) == 0) {
-            $lease_database['host'] = "localhost";
-        }
+        if (is_blank($lease_database['host'])) { $lease_database['host'] = "localhost"; }
         // open DB connection
-        $this->init_database_conection($lease_database['user'], $lease_database['password'], $lease_database['host'], 3306, $lease_database['name']);
+        $this->init_database_conection ($lease_database['user'], $lease_database['password'], $lease_database['host'], 3306, $lease_database['name']);
         // set query
-        if ($type == "IPv4") {
-            $query = "select ";
+        if($type=="IPv4") {
+            $query  = "select ";
             $query .= "INET_NTOA(address) as `address`, hex(hwaddr) as hwaddr, hex(`client_id`) as client_id,`subnet_id`,`valid_lifetime`,`expire`,`name` as `state`,`fqdn_fwd`,`fqdn_rev`,`hostname` from `lease4` as a, ";
             $query .= "`lease_state` as s where a.`state` = s.`state`;";
-        } else {
+        }
+        else {
             throw new Exception("IPv6 leases not yet!");
         }
         // fetch leases
-        try {
-            $leases = $this->Database_kea->getObjectsQuery($query);
-        } catch (Exception $e) {
+        try { $leases = $this->Database_kea->getObjectsQuery("lease4", $query); }
+        catch (Exception $e) {
             throw new Exception($e->getMessage());
         }
         // save leases
-        if (sizeof($leases) > 0) {
+        if (sizeof($leases)>0) {
             // we need array
             $result = array();
             // loop
-            foreach ($leases as $k => $l) {
-                $result[$k] = (array)$l;
+            foreach ($leases as $k=>$l) {
+                $result[$k] = (array) $l;
             }
 
             // save
-            if ($type == "IPv4") {
+            if($type=="IPv4") {
                 $this->leases4 = $result;
-            } else {
+            }
+            else {
                 $this->leases6 = $result;
             }
         }
@@ -449,8 +424,7 @@ class DHCP_kea extends Common_functions
      * @param mixed $lease_database
      * @return void
      */
-    private function get_leases_postgresql($lease_database)
-    {
+    private function get_leases_postgresql ($lease_database) {
         throw new exception ("PostgresSQL not supported");
     }
 
@@ -477,40 +451,42 @@ class DHCP_kea extends Common_functions
      * @access public
      * @param string $type (default: "IPv4")
      * @return void
-     * @throws exception
      */
-    public function get_reservations($type = "IPv4")
-    {
+    public function get_reservations ($type = "IPv4") {
         // first check where they are stored - mysql, postgres or file
-        if ($type == "IPv4") {
+        if($type=="IPv4") {
             if (isset($this->config['Dhcp4']['hosts-database'])) {
                 $reservations_database = $this->config['Dhcp4']['hosts-database'];
-            } else {
+            }
+            else {
                 $reservations_database = false;
             }
-        } else {
+        }
+        else {
             if (isset($this->config['Dhcp4']['hosts-database'])) {
                 $reservations_database = $this->config['Dhcp6']['hosts-database'];
-            } else {
+            }
+            else {
                 $reservations_database = false;
             }
         }
 
 
         // first check reservations under subnet > reservations, can be both
-        $this->get_reservations_config_file($type);
+        $this->get_reservations_config_file ($type);
 
         // if set in config check also database
-        if ($reservations_database !== false) {
+        if ($reservations_database!==false) {
             // set lease type
             $reservations_database_type = $reservations_database['type'];
 
             // id database type is set and valid check it also
             if (!in_array($reservations_database_type, $this->reservation_types)) {
                 throw new exception ("Invalid reservations database type");
-            } else {
+            }
+            else {
                 // get leases
-                $type_l = "get_reservations_" . $reservations_database_type;
+                $type_l = "get_reservations_".$reservations_database_type;
                 $this->{$type_l} ($reservations_database, $type);
             }
         }
@@ -573,47 +549,45 @@ class DHCP_kea extends Common_functions
      * Fetches leases from mysql database.
      *
      * @access private
-     * @param mixed $reservations_database //database details
-     * @param mixed $type //ipv4 / ipv6
+     * @param mixed $reservations_database  //database details
+     * @param mixed $type                   //ipv4 / ipv6
      * @return void
      */
-    private function get_reservations_mysql($reservations_database, $type)
-    {
+    private function get_reservations_mysql ($reservations_database, $type) {
         // if host not specified assume localhost
-        if (strlen($reservations_database['host']) == 0) {
-            $reservations_database['host'] = "localhost";
-        }
+        if (is_blank($reservations_database['host'])) { $reservations_database['host'] = "localhost"; }
         // open DB connection
-        $this->init_database_conection($reservations_database['user'], $reservations_database['password'], $reservations_database['host'], 3306, $reservations_database['name']);
+        $this->init_database_conection ($reservations_database['user'], $reservations_database['password'], $reservations_database['host'], 3306, $reservations_database['name']);
         // set query
-        if ($type == "IPv4") {
+        if($type=="IPv4") {
             $query = "select 'MySQL' as 'location', `dhcp4_subnet_id`, `ipv4_address` as `ip-address`, HEX(`dhcp_identifier`) as `hw-address`, `hostname` from `hosts`;";
-        } else {
+        }
+        else {
             $query = "select * from `hosts`;";
         }
         // fetch leases
-        try {
-            $reservations = $this->Database_kea->getObjectsQuery($query);
-        } catch (Exception $e) {
+        try { $reservations = $this->Database_kea->getObjectsQuery("hosts", $query); }
+        catch (Exception $e) {
             throw new Exception($e->getMessage());
         }
         // save leases
-        if (sizeof($reservations) > 0) {
+        if (sizeof($reservations)>0) {
             // we need array
             $result = array();
             // loop
-            foreach ($reservations as $k => $l) {
+            foreach ($reservations as $k=>$l) {
                 // check for subnet
-                if ($l->dhcp4_subnet_id !== 0 && strlen($l->dhcp4_subnet_id) > 0) {
-                    if ($type == "IPv4") {
-                        foreach ($this->subnets4 as $s) {
-                            if ($s['id'] == $l->dhcp4_subnet_id) {
+                if ($l->dhcp4_subnet_id!==0 && !is_blank($l->dhcp4_subnet_id)) {
+                    if($type=="IPv4") {
+                        foreach($this->subnets4 as $s) {
+                            if($s['id']==$l->dhcp4_subnet_id) {
                                 $l->subnet = $s['subnet'];
                             }
                         }
-                    } else {
-                        foreach ($this->subnets6 as $s) {
-                            if ($s['id'] == $l->dhcp6_subnet_id) {
+                    }
+                    else {
+                        foreach($this->subnets6 as $s) {
+                            if($s['id']==$l->dhcp6_subnet_id) {
                                 $l->subnet = $s['subnet'];
                             }
                         }
@@ -621,10 +595,11 @@ class DHCP_kea extends Common_functions
                 }
 
                 // save
-                if ($type == "IPv4") {
-                    $this->reservations4[] = (array)$l;
-                } else {
-                    $this->reservations6[] = (array)$l;
+                if($type=="IPv4") {
+                    $this->reservations4[] = (array) $l;
+                }
+                else {
+                    $this->reservations6[] = (array) $l;
                 }
             }
         }
@@ -634,9 +609,16 @@ class DHCP_kea extends Common_functions
     /**
      *
      */
-    public function read_statistics()
-    {
-        //$this->
+    public function read_statistics () {
+        $sock = stream_socket_client('unix:///var/lib/kea/socket', $errno, $errstr);
+
+        $cmd = array("command"=>"list-commands");
+
+        fwrite($sock, json_encode($cmd)."\r\n");
+
+        echo fread($sock, 4096)."\n";
+
+        fclose($sock);
     }
 
     public function gen_error_msg($array)

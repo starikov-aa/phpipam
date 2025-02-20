@@ -28,10 +28,10 @@ $tabs = array("subnets", "leases", "status", "settings", "server-config");
         $Result->show("danger", _("You do not have permissions to access this module"), false);
     } elseif ($User->settings->enableDHCP == 1) { ?>
 
-        <?php
-        # validate DHCP settings - JSON
-        if ($Tools->validate_json_string($User->settings->DHCP) === false) {
-            $Result->show("danger", "Error parsing DHCP settings: " . $Tools->json_error, false);
+    <?php
+    # validate DHCP settings - JSON
+    if ($Tools->validate_json_string($User->settings->DHCP)===false) {
+        $Result->show("danger", "Error parsing DHCP settings: ".$Tools->json_error, false);
 
             // settings
             include(dirname(__FILE__) . "/settings.php");
@@ -42,16 +42,16 @@ $tabs = array("subnets", "leases", "status", "settings", "server-config");
             # DHCP wrapper class
             $DHCP = new DHCP ($dhcp_db['type'], $dhcp_db['settings']);
 
-            // read config
-            $config = $DHCP->read_config();
-            ?>
-            <!-- tabs -->
-            <ul class="nav nav-tabs">
-                <?php
-                // default tab
-                if (!isset($_GET['subnetId'])) {
-                    $_GET['subnetId'] = "subnets";
-                }
+        // read config
+        $config = $DHCP->read_config ();
+        ?>
+        <!-- tabs -->
+        <ul class="nav nav-tabs">
+        	<?php
+        	// default tab
+        	if(!isset($_GET['subnetId'])) {
+        		$_GET['subnetId'] = "subnets";
+        	}
 
                 // check
                 if (!in_array($_GET['subnetId'], $tabs)) {
