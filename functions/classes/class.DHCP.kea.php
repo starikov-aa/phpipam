@@ -706,7 +706,7 @@ class DHCP_kea extends Common_functions {
                 $result[] = [
                     'server' => $s,
                     'data' => $raw[0]['arguments'],
-                    'msg' => $raw[0]['text'],
+                    'msg' => $raw[0]['text'] ?? "",
                     'status' => $raw[0]['result']
                 ];
             } else {
@@ -716,9 +716,6 @@ class DHCP_kea extends Common_functions {
             if (!$exec_all_server) {
                 break;
             }
-
-            //print_r($this->kea_settings). "\n\n\n";
-            //print_r($result);
         }
         return $exec_all_server ? $result : $result[0];
     }
