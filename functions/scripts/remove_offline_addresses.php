@@ -20,7 +20,6 @@ $Addresses	= new Addresses ($Database);
 $Subnets	= new Subnets ($Database);
 $Result		= new Result();
 
-
 // response for mailing
 $removed_addresses = array();			// Array with differences, can be used to email to admins
 
@@ -62,6 +61,7 @@ if (!is_array($offline_addresses) || empty($offline_addresses)) {
 # remove
 else {
 	foreach ($offline_addresses as $a) {
+		echo "subnetID: " . $a->subnet . "      subnetDesc: " . $a->description . "     IP: " . long2ip($a->ip_addr) . "        state: " . $a->state . "        lastSeen: " . $a->lastSeen . "\n";
 		// save
 		$removed_addresses[] = $a;
 		// remove
