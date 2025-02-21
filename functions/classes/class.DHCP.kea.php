@@ -536,7 +536,7 @@ class DHCP_kea extends Common_functions {
                                 "subnet-id" => $s_id,
                                 "next-server" => $r['next-server'],
                                 "boot-file-name" => $r['boot-file-name'],
-                                "subnet" => $r['subnet']
+                                "subnet" => $r['subnet'] ?? ""
                             );
                             // options
                             if (isset($r['option-data'])) {
@@ -896,7 +896,7 @@ class DHCP_kea extends Common_functions {
                 $result[$item['ip-address']] = [
                     "ip-address" => $item['ip-address'],
                     "hw-address" => $item['hw-address'],
-                    "client_id" => $item['client-id'],
+                    "client_id" => $item['client-id'] ?? "",
                     "valid_lifetime" => $item['valid-lft'],
                     "expire" => date("Y-m-d H:i:s", ($item['cltt'] + $item['valid-lft'])),
                     "subnet_id" => $item['subnet-id'],
