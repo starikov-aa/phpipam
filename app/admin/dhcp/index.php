@@ -40,7 +40,7 @@ $tabs = array("subnets", "leases", "status", "settings", "server-config");
             $dhcp_db = json_decode($User->settings->DHCP, true);
 
             # DHCP wrapper class
-            $DHCP = new DHCP ($dhcp_db['type'], $dhcp_db['settings']);
+            $DHCP = new DHCP ($dhcp_db['type']);
 
         // read config
         $config = $DHCP->read_config ();
