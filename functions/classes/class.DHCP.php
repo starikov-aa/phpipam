@@ -391,12 +391,12 @@ class DHCP extends Common_functions
             if ($size != 0) {
                 $tmp[] = hex2bin(substr($hex, $i + 2, $size * 2));
             } else {
-                $r[] = join($tmp, ".");
+                $r[] = join(".", $tmp);
                 unset($tmp);
             }
             $i += $size * 2 + 1;
         }
-        return join($r, ';');
+        return join(";", $r);
     }
 
     /**
