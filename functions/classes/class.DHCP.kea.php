@@ -160,6 +160,15 @@ class DHCP_kea extends Common_functions {
     protected $Database_kea = false;
 
 
+    /**
+     * The address of the server from which data will be taken (liza, reservation).
+     * By default, this is a server with the "primary" role.
+     *
+     * @var string
+     */
+    private $ApiReadServer = "";
+
+    private $LogFile = '';
 
     /**
      * __construct function.
@@ -172,21 +181,25 @@ class DHCP_kea extends Common_functions {
         $this->LogFile = $_SERVER['DOCUMENT_ROOT'] . "/kea_dhcp.log";
 
         // save settings
-        if (is_array($kea_settings))            { $this->kea_settings = $kea_settings; }
-        else                                    { throw new exception ("Invalid kea settings"); }
+        if (is_array($kea_settings)) {
+            $this->kea_settings = $kea_settings;
+        } else {
+            throw new exception ("Invalid kea settings");
+        }
 
         // set file
-        if (isset($this->kea_settings['file'])) { $this->kea_config_file = $this->kea_settings['file']; }
+        if (isset($this->kea_settings['file'])) {
+            $this->kea_config_file = $this->kea_settings['file'];
+        }
+        $rs = $this->get_server('all', $addr_only = true);
+        if ($rs) {
+            $this->ApiReadServer = $rs;
+        }
 
         // parse config file on startup
         $this->parse_config ();
         // parse and save subnets
         $this->parse_subnets ();
-
-        $rs = $this->get_server('all', $addr_only = true);
-        if ($rs) {
-            $this->ApiReadServer = $rs;
-        }
     }
 
     /**
