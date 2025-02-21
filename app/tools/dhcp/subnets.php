@@ -1,8 +1,6 @@
 <?php
 
-/**
- * Script to edit / add / delete groups
- *************************************************/
+global $Subnets;
 
 # verify that user is logged in
 $User->check_user_session();
@@ -19,21 +17,40 @@ function secondsToTime($seconds) {
     return $dtF->diff($dtT)->format('%ad %H:%I:%S');
 }
 
-// this function returns single item as table item for subnets
-function print_subnets($s, $isManagement)
+// Получаем массив подсетей IPAM.
+// В качестве ключа сеть в формате CIDR - 1.2.3.4/24
+$allIpamSubnets = [];
+foreach ($Subnets->fetch_all_subnets() as $subnet) {
+    $allIpamSubnets[long2ip($subnet->subnet) . "/" . $subnet->mask] = [
+            "id" => $subnet->id,
+            "sectionId" => $subnet->sectionId,
+            "description" => $subnet->description
+    ];
+}
+
+/**
+ * Формирует строку для таблицы.
+ * @param array $s Массив с информацией о подсети из KEA
+ * @param bool $isManagement Права пользователя
+ * @param array $allIpamSubnets Список подсетей из IPAM
+ * @return array Массив HTML строк для вставки в таблицу
+ */
+function print_subnets(array $s, bool $isManagement, array $allIpamSubnets) : array
 {
-    // cast
-    // printed option to add defaults
     $printed_options = array();
     // get config
-    global $config, $Subnets, $DHCP;
+    global $config, $DHCP;
 
-    $ipamSubnet = $Subnets->fetch_subnet('id', $s['id']);
+    if (array_key_exists($s['subnet'], $allIpamSubnets)) {
+        $ipamSubnet = $allIpamSubnets[$s['subnet']];
+        $subnetLink = "<a href='index.php?page=subnets&section=" . $ipamSubnet['sectionId'] .
+            "&subnetId=" . $ipamSubnet['id'] . "'>" . $ipamSubnet['description'] . "</a>";
+    } else {
+        $subnetLink = "Подсеть отсутствует в IPAM,<br>есть только в конфиге KEA";
+    }
 
     $html[] = "<tr>";
-    $html[] = " <td>" . $s['id'] . "</td>";
-    $html[] = " <td><a href='index.php?page=subnets&section=" . $ipamSubnet->sectionId .
-        "&subnetId=" . $s['id'] . "'>" . $ipamSubnet->description . "</a></td>";
+    $html[] = "<td>$subnetLink</td>";
     // subnet
     $html[] = " <td>" . $s['subnet'] . "</td>";
     // pools
@@ -79,8 +96,8 @@ function print_subnets($s, $isManagement)
     $html[] = "<td class='actions'>";
     if ($isManagement) {
         $html[] = "    <div class='btn-group'>";
-        $html[] = "	<button class='btn btn-xs btn-default open_popup' data-class='500' data-id='" . $s['id'] . "' data-hostname='" . $Hostname . "' data-script='app/admin/dhcp/edit-subnet.php' data-action='edit'><i class='fa fa-pencil'></i></button>";
-        $html[] = "	<button class='btn btn-xs btn-default open_popup' data-class='500' data-id='" . $s['id'] . "' data-hostname='" . $Hostname . "' data-script='app/admin/dhcp/edit-subnet.php' data-action='delete'><i class='fa fa-times'></i></button>";
+        $html[] = "	<button class='btn btn-xs btn-default open_popup' data-class='500' data-id='" . $s['id'] . "' data-script='app/admin/dhcp/edit-subnet.php' data-action='edit'><i class='fa fa-pencil'></i></button>";
+        $html[] = "	<button class='btn btn-xs btn-default open_popup' data-class='500' data-id='" . $s['id'] . "' data-script='app/admin/dhcp/edit-subnet.php' data-action='delete'><i class='fa fa-times'></i></button>";
         $html[] = "	</div>";
     }
     $html[] = "	</td>";
@@ -112,7 +129,6 @@ function print_subnets($s, $isManagement)
     <!-- Headers -->
     <thead>
     <tr>
-        <th data-field="id" data-sortable="true">ID</th>
         <th data-field="desc" data-sortable="false">Desc</th>
         <th data-field="subnet" data-sortable="true" data-sorter="compareSubnet">Subnet</th>
         <th data-field="pools" data-sortable="false">Pools</th>
@@ -140,7 +156,7 @@ function print_subnets($s, $isManagement)
         $html[] = "</tr>";
     } else {
         foreach ($subnets4 as $s) {
-            $html = array_merge($html, print_subnets($s, $isManagement));
+            $html = array_merge($html, print_subnets($s, $isManagement, $allIpamSubnets));
         }
     }
 
