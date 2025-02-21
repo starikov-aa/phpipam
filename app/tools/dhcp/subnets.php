@@ -124,7 +124,7 @@ function print_subnets($s, $isManagement)
     <!-- subnets -->
     <?php
 
-    $headCount = count($table_headers);
+    $headCount = 4;
 
     $html = [];
 

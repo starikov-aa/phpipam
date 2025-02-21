@@ -36,20 +36,6 @@ foreach ($Subnets->fetch_all_subnets() as $sub) {
     }
 }
 
-$table_headers = [
-    '',
-    'Sub desc',
-    'Address',
-    'MAC',
-    'Client_id',
-    'Expires',
-    'State',
-    'Hostname (hn Ipam)',
-    'Description',
-    ''
-];
-
-
 // this function returns single item as table item for subnets
 function print_leases($lease, $AllIP, $reservation, $isManagement)
 {
@@ -155,7 +141,7 @@ function print_leases($lease, $AllIP, $reservation, $isManagement)
     <!-- subnets -->
     <?php
 
-    $headCount = count($table_headers);
+    $headCount = 10;
 
     // v4
     //$html[] = "<td class='th' colspan='" . $headCount . "'>" . _("IPv4 leases") . "</td>";
