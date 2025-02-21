@@ -42,14 +42,23 @@ function print_leases($lease, $AllIP, $reservation, $isManagement)
     // get
     global $User, $Subnets;
 
-    // выводим описание подсети
-    $subnetDesc = $AllIP[$lease['ip-address']]['subnet'];
-    if (empty($subnetDesc)){
-        $subnetDesc = (array) $Subnets->find_subnet_by_ip($lease['ip-address']);
+    // Выводим описание подсети
+    if (array_key_exists($lease['ip-address'], $AllIP)) {
+        $ipamSubnet = $AllIP[$lease['ip-address']]['subnet'];
+        $ipamIpDescription = $AllIP[$lease['ip-address']]['description'];
+    } else {
+        $ipamSubnet = (array)$Subnets->find_subnet_by_ip($lease['ip-address']);
+        $ipamIpDescription = "";
     }
 
-    $isReserved = !is_array($reservation[$lease['ip-address']]) ? 'D' : '';
-    $isExpired = !is_array($reservation[$lease['ip-address']]) ? $lease['expire'] : 'Static';
+    // Проверяем резервирование
+    if (array_key_exists($lease['ip-address'], $reservation)) {
+        $isReserved = "";
+        $isExpired = "Static";
+    } else {
+        $isReserved = "D";
+        $isExpired = $lease['expire'] ?? "";
+    }
 
     // Задаем имя из lease, ipam или оба сразу
     $ipamHN = @$AllIP[$lease['ip-address']]['hostname'];
@@ -65,20 +74,23 @@ function print_leases($lease, $AllIP, $reservation, $isManagement)
         $Hostname = '---';
     }
 
-    // printed option to add defaults
     $printed_options = array();
+
+    $leaseClientId = array_key_exists("client_id", $lease) ? $lease['client_id'] : "";
+    $leaseState = array_key_exists("state", $lease) ? $lease['state'] : "-";
+    $subnetLink = "<a href='index.php?page=subnets&section=" . $ipamSubnet['sectionId'] .
+        "&subnetId=" . $ipamSubnet['id'] . "'>" . $ipamSubnet['description'] . "</a>";
 
     $html[] = "<tr>";
     $html[] = " <td>" . $isReserved . "</td>";
-    $html[] = " <td><a href='index.php?page=subnets&section=" . $subnetDesc['sectionId'] .
-        "&subnetId=" . $subnetDesc['id'] . "'>" . $subnetDesc['description'] . "</a></td>";
+    $html[] = " <td>" . $subnetLink . "</td>";
     $html[] = " <td>" . $lease['ip-address'] . "</td>";
     $html[] = " <td>" . $User->reformat_mac_address($lease['hw-address'], 1) . "</td>";
-    $html[] = " <td>" . $lease['client_id'] . "</td>";
+    $html[] = " <td>" . $leaseClientId . "</td>";
     $html[] = " <td>" . $isExpired . "</td>";
-    $html[] = " <td>" . $lease['state'] . "</td>";
+    $html[] = " <td>" . $leaseState . "</td>";
     $html[] = " <td>" . $Hostname . "</td>";
-    $html[] = " <td>" . $AllIP[$lease['ip-address']]['description'] . "</td>";
+    $html[] = " <td>" . $ipamIpDescription . "</td>";
     $html[] = "<td class='actions'>";
     if ($isManagement) {
         $html[] = "    <div class='btn-group'>";
@@ -160,7 +172,7 @@ function print_leases($lease, $AllIP, $reservation, $isManagement)
     } else {
         foreach ($leases4 as $lease) {
             $html = array_merge($html, print_leases($lease, $AllIP, $reservation4, $isManagement));
-            if (is_array($reservation4[$lease['ip-address']])) {
+            if (isset($reservation4[$lease['ip-address']]) && is_array($reservation4[$lease['ip-address']])) {
                 unset($reservation4[$lease['ip-address']]);
             }
         }
