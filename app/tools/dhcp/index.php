@@ -21,6 +21,15 @@ $tabs = array("subnets", "leases");
         $Result->show("danger", "Error parsing DHCP settings: ".$Tools->json_error, false);
     }
     else {
+        // Check admin page
+        if ($User->is_admin(false)) {
+            if ($_GET['page'] == "administration") {
+                $isManagement = true;
+            } else {
+                $isManagement = false;
+            }
+        }
+
         # parse and verify settings
         $dhcp_db = db_json_decode($User->settings->DHCP, true);
 
@@ -34,17 +43,17 @@ $tabs = array("subnets", "leases");
         <ul class="nav nav-tabs">
         	<?php
         	// default tab
-        	if(!isset($GET->subnetId)) {
-        		$GET->subnetId = "subnets";
+        	if(!isset($_GET['subnetId'])) {
+        		$_GET['subnetId'] = "subnets";
         	}
 
         	// check
-        	if(!in_array($GET->subnetId, $tabs)) 	{ $Result->show("danger", "Invalid request", true); }
+        	if(!in_array($_GET['subnetId'], $tabs)) 	{ $Result->show("danger", "Invalid request", true); }
 
         	// print
         	foreach($tabs as $t) {
         		$title = str_replace('_', ' ', $t);
-        		$class = $GET->subnetId==$t ? "class='active'" : "";
+        		$class = $_GET['subnetId']==$t ? "class='active'" : "";
         		print "<li role='presentation' $class><a href=".create_link("tools", "dhcp", "$t").">". _(ucwords(str_replace("_", " ", $title)))."</a></li>";
         	}
         	?>
@@ -54,11 +63,11 @@ $tabs = array("subnets", "leases");
         <?php
 
         // include content
-        $filename = $GET->subnetId . ".php";
+        $filename = dirname(__FILE__) . "/" . $_GET['subnetId'] . ".php";
 
         // include file
-        if(!file_exists(dirname(__FILE__) . $filename)) 	{ $Result->show("danger", "Invalid request", true); }
-        else											    { include(dirname(__FILE__) . $filename); }
+        if(!file_exists($filename)) 	{ $Result->show("danger", "Invalid request", true); }
+        else											    { include($filename); }
         ?>
         </div>
 <?php
