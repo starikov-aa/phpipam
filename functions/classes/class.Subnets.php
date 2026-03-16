@@ -3758,14 +3758,18 @@ class Subnets extends Common_functions {
      * @param $ip
      * @return bool | int
      */
-    public function find_subnet_by_ip($ip){
+    public function find_subnet_by_ip($ip, $type = 'IPv4'){
 	    $curMask = 0;
 	    $subObj = false;
-        foreach ($this->fetch_all_subnets() as $subItem) {
-            $c = $this->isIpInRange($ip, long2ip($subItem->subnet) . '/' . $subItem->mask);
-            if($c && $subItem->mask > $curMask) {
-                $curMask = $subItem->mask;
-                $subObj = $subItem;
+        foreach ($this->fetch_all_subnets() as $subnet) {
+
+            if ($type == 'IPv4' && $subnet->subnet > 4294967295) continue;
+            if ($type == 'IPv6' && $subnet->subnet <= 4294967295) continue;
+
+            $c = $this->isIpInRange($ip, long2ip($subnet->subnet) . '/' . $subnet->mask);
+            if($c && $subnet->mask > $curMask) {
+                $curMask = $subnet->mask;
+                $subObj = $subnet;
             }
         }
         return $subObj;

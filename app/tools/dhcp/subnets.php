@@ -21,6 +21,9 @@ function secondsToTime($seconds) {
 // В качестве ключа сеть в формате CIDR - 1.2.3.4/24
 $allIpamSubnets = [];
 foreach ($Subnets->fetch_all_subnets() as $subnet) {
+    // Игнорируем IPv6
+    if ($subnet->subnet > 4294967295) continue;
+
     $allIpamSubnets[long2ip($subnet->subnet) . "/" . $subnet->mask] = [
             "id" => $subnet->id,
             "sectionId" => $subnet->sectionId,

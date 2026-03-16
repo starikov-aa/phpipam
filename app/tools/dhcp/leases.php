@@ -26,6 +26,8 @@ $common_func = new Common_functions();
 // get information for all IP
 $AllIP = [];
 foreach ($Subnets->fetch_all_subnets() as $sub) {
+    // Игнорируем IPv6
+//    if ($sub->subnet > 4294967295) continue;
     $ips = $Addresses->fetch_subnet_addresses($sub->id, null, null, ['ip_addr', 'description', 'hostname']);
     foreach ($ips as $ip) {
         $ip_addr = $common_func->transform_to_dotted($ip->ip_addr);
@@ -171,6 +173,7 @@ function print_leases($lease, $AllIP, $reservation, $isManagement)
         $html[] = "</tr>";
     } else {
         foreach ($leases4 as $lease) {
+//            print_r($lease);
             $html = array_merge($html, print_leases($lease, $AllIP, $reservation4, $isManagement));
             if (isset($reservation4[$lease['ip-address']]) && is_array($reservation4[$lease['ip-address']])) {
                 unset($reservation4[$lease['ip-address']]);
